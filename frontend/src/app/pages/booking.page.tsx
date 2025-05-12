@@ -31,10 +31,30 @@ import {
 import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { cn } from "@/lib/utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
+const FormSchema = z.object({
+  datetime: z.date({
+    required_error: "Date & time is required!.",
+  }),
+});
 
 export default function BookingPage() {
   const [date, setDate] = useState<Date | undefined>(undefined);
-  const [timeSlot, setTimeSlot] = useState<string | undefined>(undefined);
+  // const [timeSlot, setTimeSlot] = useState<string | undefined>(undefined);
   const [service, setService] = useState<string | undefined>(undefined);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -46,23 +66,38 @@ export default function BookingPage() {
   );
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [time, setTime] = useState<string>("05:00");
+  const [doctor, setDoctor] = useState<string>("");
+  const form = useForm<z.infer<typeof FormSchema>>({
+    resolver: zodResolver(FormSchema),
+  });
 
   // Available time slots
-  const timeSlots = [
-    "9:00 AM",
-    "9:30 AM",
-    "10:00 AM",
-    "10:30 AM",
-    "11:00 AM",
-    "11:30 AM",
-    "1:00 PM",
-    "1:30 PM",
-    "2:00 PM",
-    "2:30 PM",
-    "3:00 PM",
-    "3:30 PM",
-    "4:00 PM",
-    "4:30 PM",
+  // const timeSlots = [
+  //   "9:00 AM",
+  //   "9:30 AM",
+  //   "10:00 AM",
+  //   "10:30 AM",
+  //   "11:00 AM",
+  //   "11:30 AM",
+  //   "1:00 PM",
+  //   "1:30 PM",
+  //   "2:00 PM",
+  //   "2:30 PM",
+  //   "3:00 PM",
+  //   "3:30 PM",
+  //   "4:00 PM",
+  //   "4:30 PM",
+  // ];
+
+  const doctors = [
+    "Doctor 1",
+    "Doctor 2",
+    "Doctor 3",
+    "Doctor 4",
+    "Doctor 5",
+    "Doctor 6",
   ];
 
   // Available services
@@ -74,6 +109,7 @@ export default function BookingPage() {
     "Root Canal",
     "Extraction",
     "Consultation",
+    "Others",
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -86,7 +122,6 @@ export default function BookingPage() {
     // In a real app, you would handle booking here
     console.log({
       date,
-      timeSlot,
       service,
       firstName,
       lastName,
@@ -94,6 +129,7 @@ export default function BookingPage() {
       phone,
       notes,
       isNewPatient,
+      time,
     });
 
     setIsLoading(false);
@@ -119,7 +155,8 @@ export default function BookingPage() {
             <div className="space-y-1">
               <p className="font-medium">Date & Time:</p>
               <p>
-                {date ? format(date, "PPPP") : ""} at {timeSlot}
+                {/* {date ? format(date, "PPPP") : ""} at {timeSlot} */}
+                {date ? format(date, "PPPP") : ""} at {time}
               </p>
             </div>
             <div className="space-y-1">
@@ -158,8 +195,184 @@ export default function BookingPage() {
 
         <form onSubmit={handleSubmit}>
           <div className="grid gap-6 md:grid-cols-2">
-            {/* Left column - Appointment details */}
             <Card>
+              <CardHeader>
+                <CardTitle>Appointment Details</CardTitle>
+                <CardDescription>
+                  Select your preferred date, time, and service
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex w-full gap-4">
+                  <Form {...form}>
+                    <FormField
+                      control={form.control}
+                      name="datetime"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col w-full">
+                          <FormLabel>Date</FormLabel>
+                          <Popover open={isOpen} onOpenChange={setIsOpen}>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant={"outline"}
+                                  className={cn(
+                                    "w-full font-normal",
+                                    !field.value && "text-muted-foreground"
+                                  )}
+                                >
+                                  {field.value ? (
+                                    `${format(field.value, "PPP")}, ${time}`
+                                  ) : (
+                                    <span>Pick a date</span>
+                                  )}
+                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent
+                              className="w-auto p-0"
+                              align="start"
+                            >
+                              <Calendar
+                                mode="single"
+                                captionLayout="dropdown"
+                                selected={date || field.value}
+                                onSelect={(selectedDate) => {
+                                  const [hours, minutes] = time.split(":")!;
+                                  selectedDate?.setHours(
+                                    parseInt(hours),
+                                    parseInt(minutes)
+                                  );
+                                  setDate(selectedDate!);
+                                  field.onChange(selectedDate);
+                                }}
+                                onDayClick={() => setIsOpen(false)}
+                                fromYear={2000}
+                                toYear={new Date().getFullYear()}
+                                // disabled={(date) =>
+                                //   Number(date) < Date.now() - 1000 * 60 * 60 * 24 ||
+                                //   Number(date) > Date.now() + 1000 * 60 * 60 * 24 * 30
+                                // }
+                                defaultMonth={field.value}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          <FormDescription>
+                            Set your date and time.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="datetime"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel>Time</FormLabel>
+                          <FormControl>
+                            <Select
+                              defaultValue={time!}
+                              onValueChange={(e) => {
+                                setTime(e);
+                                if (date) {
+                                  const [hours, minutes] = e.split(":");
+                                  const newDate = new Date(date.getTime());
+                                  newDate.setHours(
+                                    parseInt(hours),
+                                    parseInt(minutes)
+                                  );
+                                  setDate(newDate);
+                                  field.onChange(newDate);
+                                }
+                              }}
+                            >
+                              <SelectTrigger className="font-normal focus:ring-0 w-[120px] focus:ring-offset-0">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <ScrollArea className="h-[15rem]">
+                                  {Array.from({ length: 96 }).map((_, i) => {
+                                    const hour = Math.floor(i / 4)
+                                      .toString()
+                                      .padStart(2, "0");
+                                    const minute = ((i % 4) * 15)
+                                      .toString()
+                                      .padStart(2, "0");
+                                    return (
+                                      <SelectItem
+                                        key={i}
+                                        value={`${hour}:${minute}`}
+                                      >
+                                        {hour}:{minute}
+                                      </SelectItem>
+                                    );
+                                  })}
+                                </ScrollArea>
+                              </SelectContent>
+                            </Select>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </Form>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="doctor">Doctor</Label>
+                  <Select value={doctor} onValueChange={setDoctor}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select your preferred doctor" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {doctors.map((doctor) => (
+                        <SelectItem key={doctor} value={doctor}>
+                          {doctor}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="service">Service</Label>
+                  <Select value={service} onValueChange={setService}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a service" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {services.map((svc) => (
+                        <SelectItem key={svc} value={svc}>
+                          {svc}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Are you a new patient?</Label>
+                  <RadioGroup
+                    value={isNewPatient}
+                    onValueChange={setIsNewPatient}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="yes" id="new-yes" />
+                      <Label htmlFor="new-yes">Yes</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="no" id="new-no" />
+                      <Label htmlFor="new-no">No</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Left column - Appointment details */}
+            {/* <Card>
               <CardHeader>
                 <CardTitle>Appointment Details</CardTitle>
                 <CardDescription>
@@ -180,11 +393,23 @@ export default function BookingPage() {
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
-                      <Calendar
+                      {/* <Calendar
                         mode="single"
-                        selected={date}
-                        onSelect={setDate}
-                        initialFocus
+                        captionLayout="dropdown"
+                        selected={date || field.value}
+                        onSelect={(selectedDate) => {
+                          const [hours, minutes] = time.split(":")!;
+                          selectedDate?.setHours(
+                            parseInt(hours),
+                            parseInt(minutes)
+                          );
+                          setDate(selectedDate!);
+                          field.onChange(selectedDate);
+                        }}
+                        onDayClick={() => setIsOpen(false)}
+                        fromYear={2000}
+                        toYear={new Date().getFullYear()}
+                        defaultMonth={field.value}
                         disabled={(date) => {
                           // Disable weekends and past dates
                           const day = date.getDay();
@@ -192,8 +417,8 @@ export default function BookingPage() {
                             date < new Date(new Date().setHours(0, 0, 0, 0));
                           return day === 0 || day === 6 || isPastDate;
                         }}
-                      />
-                    </PopoverContent>
+                      /> */}
+            {/* </PopoverContent>
                   </Popover>
                 </div>
 
@@ -246,7 +471,7 @@ export default function BookingPage() {
                   </RadioGroup>
                 </div>
               </CardContent>
-            </Card>
+            </Card> */}
 
             {/* Right column - Personal information */}
             <Card>
@@ -321,7 +546,8 @@ export default function BookingPage() {
               disabled={
                 isLoading ||
                 !date ||
-                !timeSlot ||
+                // !timeSlot ||
+                !time ||
                 !service ||
                 !firstName ||
                 !lastName ||
