@@ -1,46 +1,46 @@
-import { IUser } from "../interface/user.interface";
+import { IDoctor } from "../interface/doctor.interface";
 import models from "../models";
 
-const User = models.User;
+const Doctor = models.Doctor;
 
-const create = async (data: IUser) => {
+const create = async (data: IDoctor) => {
   try {
-    const newData = new User(data);
+    const newData = new Doctor(data);
     const result = await newData.save();
     return result;
   } catch (e) {
     console.log(e);
-    throw new Error("Failed to create user!");
+    throw new Error("Failed to create doctor!");
   }
 };
 
 const findById = async (id: string) => {
-  return User.findOne({ where: { id } });
+  return Doctor.findOne({ where: { id } });
 };
 
 const findByEmail = async (email: string) => {
-  return User.findOne({ where: { email } });
+  return Doctor.findOne({ where: { email } });
 };
 
 const isEmailExists = async (email: string) => {
-  return User.count({ where: { email } }).then((count: number) => {
+  return Doctor.count({ where: { email } }).then((count: number) => {
     return count != 0;
   });
 };
 
 const findAll = async () => {
   try {
-    const result = User.findAll();
+    const result = Doctor.findAll();
     return result;
   } catch (e) {
     console.log(e);
-    throw new Error("Failed to fetch users");
+    throw new Error("Failed to fetch doctors");
   }
 };
 
-const updateWhere = async (userBody: IUser, id: string) => {
+const updateWhere = async (doctorBody: IDoctor, id: string) => {
   try {
-    const result = User.update(userBody, { where: { id } });
+    const result = Doctor.update(doctorBody, { where: { id } });
     return result;
   } catch (e) {
     console.log(e);

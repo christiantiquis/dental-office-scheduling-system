@@ -17,7 +17,7 @@ if (model.sequelize) {
     .then(() => {
       console.log("Database synced successfully.");
     })
-    .catch((err) => {
+    .catch((err: any) => {
       console.error("Error syncing database:", err);
     });
 } else {

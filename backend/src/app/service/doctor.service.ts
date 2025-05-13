@@ -1,27 +1,27 @@
 import httpStatus from "http-status";
 import bcrypt from "bcrypt";
 import resHandler from "../helper/response.handler";
-import userDao from "../dao/user.dao";
-import { IUser } from "../interface/user.interface";
+import doctorDao from "../dao/doctor.dao";
+import { IDoctor } from "../interface/doctor.interface";
 
-const create = async (userBody: IUser) => {
+const create = async (doctorBody: IDoctor) => {
   try {
-    const userToCreate = {
-      ...userBody,
-      email: userBody.email.toLowerCase(),
-      password: await bcrypt.hash(userBody.password, 10),
+    const doctorToCreate = {
+      ...doctorBody,
+      email: doctorBody.email.toLowerCase(),
+      password: await bcrypt.hash(doctorBody.password, 10),
     };
-    if (await userDao.isEmailExists(userToCreate.email)) {
+    if (await doctorDao.isEmailExists(doctorToCreate.email)) {
       return resHandler.returnError(
         httpStatus.BAD_REQUEST,
         "Email already taken"
       );
     }
 
-    const userData = await userDao.create(userToCreate);
-    const { password, ...sanitizedUserData } = userData.toJSON();
+    const doctorData = await doctorDao.create(doctorToCreate);
+    const { password, ...sanitizedDoctorData } = doctorData.toJSON();
 
-    if (!sanitizedUserData) {
+    if (!sanitizedDoctorData) {
       return resHandler.returnError(
         httpStatus.BAD_REQUEST,
         "Registration Failed! Please Try again."
@@ -30,7 +30,7 @@ const create = async (userBody: IUser) => {
       return resHandler.returnSuccess(
         httpStatus.CREATED,
         "Successfully Registered the account!",
-        sanitizedUserData
+        sanitizedDoctorData
       );
     }
   } catch (e) {
@@ -42,11 +42,11 @@ const create = async (userBody: IUser) => {
   }
 };
 
-const login = async (userBody: IUser) => {
+const login = async (doctorBody: IDoctor) => {
   try {
-    const userData = await userDao.findByEmail(userBody.email);
+    const doctorData = await doctorDao.findByEmail(doctorBody.email);
 
-    if (userData == null) {
+    if (doctorData == null) {
       return resHandler.returnError(
         httpStatus.BAD_REQUEST,
         "Invalid Credentials!"
@@ -54,8 +54,8 @@ const login = async (userBody: IUser) => {
     }
 
     const isPasswordValid = await bcrypt.compare(
-      userBody.password,
-      userData.password
+      doctorBody.password,
+      doctorData.password
     );
 
     if (!isPasswordValid) {
@@ -65,12 +65,12 @@ const login = async (userBody: IUser) => {
       );
     }
 
-    const { password, ...sanitizedUserData } = userData.toJSON();
+    const { password, ...sanitizedDoctorData } = doctorData.toJSON();
 
     return resHandler.returnSuccess(
       httpStatus.OK,
       "Login Successful",
-      sanitizedUserData
+      sanitizedDoctorData
     );
   } catch (e) {
     console.log(e);
@@ -81,45 +81,45 @@ const login = async (userBody: IUser) => {
   }
 };
 
-const update = async (userBody: IUser) => {
+const update = async (doctorBody: IDoctor) => {
   try {
-    const userData = await userDao.findById(userBody.id);
-    const updatedFields: Partial<IUser> = {};
-    if (userData == null) {
-      return resHandler.returnError(httpStatus.NOT_FOUND, "User not found!");
+    const doctorData = await doctorDao.findById(doctorBody.id);
+    const updatedFields: Partial<IDoctor> = {};
+    if (doctorData == null) {
+      return resHandler.returnError(httpStatus.NOT_FOUND, "Doctor not found!");
     }
 
-    if (userBody.first_name !== userData.first_name) {
-      updatedFields.first_name = userBody.first_name;
+    if (doctorBody.first_name !== doctorData.first_name) {
+      updatedFields.first_name = doctorBody.first_name;
     }
-    if (userBody.last_name !== userData.last_name) {
-      updatedFields.last_name = userBody.last_name;
+    if (doctorBody.last_name !== doctorData.last_name) {
+      updatedFields.last_name = doctorBody.last_name;
     }
-    if (userBody.email.toLowerCase() !== userData.email.toLowerCase()) {
-      updatedFields.email = userBody.email.toLowerCase();
+    if (doctorBody.email.toLowerCase() !== doctorData.email.toLowerCase()) {
+      updatedFields.email = doctorBody.email.toLowerCase();
     }
 
-    const userUpdated: IUser = {
-      ...userBody,
+    const doctorUpdated: IDoctor = {
+      ...doctorBody,
       ...updatedFields,
     };
 
-    const { id } = userUpdated;
+    const { id } = doctorUpdated;
 
-    const isUpdated = await userDao.updateWhere(userUpdated, id);
+    const isUpdated = await doctorDao.updateWhere(doctorUpdated, id);
     if (isUpdated) {
-      const updateUser = await userDao.findById(id);
-      const { password, ...sanitizedUserData } = updateUser;
+      const updateDoctor = await doctorDao.findById(id);
+      const { password, ...sanitizedDoctorData } = updateDoctor;
 
       return resHandler.returnSuccess(
         httpStatus.OK,
         "Update Successful",
-        sanitizedUserData
+        sanitizedDoctorData
       );
     } else {
       return resHandler.returnError(
         httpStatus.INTERNAL_SERVER_ERROR,
-        "Failed to update the user. Please try again."
+        "Failed to update the doctor. Please try again."
       );
     }
   } catch (e) {
@@ -133,9 +133,9 @@ const update = async (userBody: IUser) => {
 
 const getAll = async () => {
   try {
-    const usersData = await userDao.findAll();
-    console.log(usersData);
-    return resHandler.returnSuccess(httpStatus.OK, "Success", usersData);
+    const doctorsData = await doctorDao.findAll();
+    console.log(doctorsData);
+    return resHandler.returnSuccess(httpStatus.OK, "Success", doctorsData);
   } catch (e) {
     console.log(e);
     return resHandler.returnError(
@@ -147,20 +147,20 @@ const getAll = async () => {
 
 const getByEmail = async (email: string) => {
   try {
-    let userData = await userDao.findByEmail(email);
+    let doctorData = await doctorDao.findByEmail(email);
 
-    if (userData == null) {
+    if (doctorData == null) {
       return resHandler.returnError(
         httpStatus.BAD_REQUEST,
         "Invalid Credentials!"
       );
     }
-    const { password, ...sanitizedUserData } = userData.toJSON();
+    const { password, ...sanitizedDoctorData } = doctorData.toJSON();
 
     return resHandler.returnSuccess(
       httpStatus.OK,
       "Login Successful",
-      sanitizedUserData
+      sanitizedDoctorData
     );
   } catch (e) {
     console.log(e);

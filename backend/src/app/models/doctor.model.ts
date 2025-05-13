@@ -2,21 +2,20 @@
 
 import { Model, Sequelize } from "sequelize";
 import type { DataTypes as SequelizeDataTypes } from "sequelize";
-import { IUser } from "../interface/user.interface";
+import { IDoctor } from "../interface/doctor.interface";
 
 export default (sequelize: Sequelize, DataTypes: typeof SequelizeDataTypes) => {
-  class User extends Model<IUser> {
+  class Doctor extends Model<IDoctor> {
     /**
      * Helper method for defining associations.
      * This method is not a part of Sequelize lifecycle.
      * The `models/index` file will call this method automatically.
      */
     static associate(models: any) {
-      // A User can have many Appointments
-      User.hasMany(models.Appointment, { foreignKey: "patient_id" });
+      Doctor.hasMany(models.Appointment, { foreignKey: "doctor_id" });
     }
   }
-  User.init(
+  Doctor.init(
     {
       id: {
         allowNull: false,
@@ -43,8 +42,8 @@ export default (sequelize: Sequelize, DataTypes: typeof SequelizeDataTypes) => {
     },
     {
       sequelize,
-      modelName: "User",
+      modelName: "Doctor",
     }
   );
-  return User;
+  return Doctor;
 };
