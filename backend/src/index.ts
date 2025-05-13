@@ -1,8 +1,8 @@
-import express from "express"
-import bodyParser from "body-parser"
-import cors from "cors"
-import routes from "./routes"
-import model from "./app/models"
+import express from "express";
+import bodyParser from "body-parser";
+import cors from "cors";
+import routes from "./routes";
+import model from "./app/models";
 
 const PORT = 3040;
 const app = express();

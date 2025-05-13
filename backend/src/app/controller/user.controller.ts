@@ -3,13 +3,13 @@ import httpStatus from "http-status";
 import userService from "../service/user.service";
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = "f0b141bc-c9b9-4a71-815f-13f5b2ada0e9";
+const JWT_SECRET = process.env.JWT_SECRET!;
 
 const getUsers = async (req: Request, res: Response): Promise<void> => {
   try {
-    const usersData = await userService.getUsers();
-    const { status, data, message, code } = usersData.response;
-    res.status(code).send({ status, code, message, data });
+    const user = await userService.getUsers();
+
+    res.status(user.response.code).send(user.response);
   } catch (e) {
     console.log(e);
     res.status(httpStatus.BAD_GATEWAY).send(e);
@@ -19,10 +19,8 @@ const getUsers = async (req: Request, res: Response): Promise<void> => {
 const getUserByEmail = async (req: Request, res: Response): Promise<void> => {
   try {
     const user = await userService.getUserByEmail(req.body.email);
-    const { status, data, message, code } = user.response;
-    // let tokens = {};
 
-    res.status(user.statusCode).send({ status, code, message, data });
+    res.status(user.response.code).send(user.response);
   } catch (e) {
     console.log(e);
     res.status(httpStatus.BAD_GATEWAY).send(e);
@@ -32,19 +30,22 @@ const getUserByEmail = async (req: Request, res: Response): Promise<void> => {
 const register = async (req: Request, res: Response): Promise<void> => {
   try {
     const user = await userService.register(req.body);
+    const { status, data, code } = user.response;
 
-    // let tokens = {};
-    let token = "";
-    const { status, data, message, code } = user.response;
-    const dataId = (data as { id?: string }).id ?? "";
-    const dataemail = (data as { email?: string }).email ?? "";
-    if (status) {
-      token = jwt.sign({ id: dataId, email: dataemail }, JWT_SECRET, {
-        expiresIn: "1h",
-      });
-    }
+    let token = status ? jwt.sign(data, JWT_SECRET, { expiresIn: "1h" }) : "";
 
-    res.status(user.statusCode).send({ status, code, message, data, token });
+    res.status(code).send({ ...user.response, token });
+  } catch (e) {
+    console.log(e);
+    res.status(httpStatus.BAD_GATEWAY).send(e);
+  }
+};
+
+const update = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const user = await userService.update(req.body);
+
+    res.status(user.response.code).send(user.response);
   } catch (e) {
     console.log(e);
     res.status(httpStatus.BAD_GATEWAY).send(e);
@@ -55,4 +56,5 @@ export default {
   getUsers,
   getUserByEmail,
   register,
+  update,
 };

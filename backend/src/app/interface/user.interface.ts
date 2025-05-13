@@ -1,8 +1,5 @@
-import { UUID } from "crypto";
-import { DataTypes } from "sequelize";
-
 export interface IUser {
-  id: typeof DataTypes.UUID;
+  id: string;
   first_name: string;
   last_name: string;
   email: string;

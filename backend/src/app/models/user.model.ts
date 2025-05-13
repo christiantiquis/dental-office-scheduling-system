@@ -30,7 +30,7 @@ export default (sequelize: Sequelize, DataTypes: typeof SequelizeDataTypes) => {
     },
     {
       sequelize,
-      modelName: "user",
+      modelName: "User",
     }
   );
   return User;

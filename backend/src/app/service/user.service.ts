@@ -1,35 +1,41 @@
 import httpStatus from "http-status";
 import bcrypt from "bcrypt";
-import responseHandler from "../helper/response.handler";
+import resHandler from "../helper/response.handler";
 import userDao from "../dao/user.dao";
 import { IUser } from "../interface/user.interface";
 
 const register = async (userBody: IUser) => {
   try {
-    let message = "Successfully Registered the account!";
-    if (await userDao.isEmailExists(userBody.email)) {
-      return responseHandler.returnError(
+    const userToCreate = {
+      ...userBody,
+      email: userBody.email.toLowerCase(),
+      password: await bcrypt.hash(userBody.password, 10),
+    };
+    if (await userDao.isEmailExists(userToCreate.email)) {
+      return resHandler.returnError(
         httpStatus.BAD_REQUEST,
         "Email already taken"
       );
     }
 
-    userBody.email = userBody.email.toLowerCase();
-    userBody.password = await bcrypt.hash(userBody.password, 10);
-    let userData = await userDao.create(userBody);
+    const userData = await userDao.create(userToCreate);
+    const { password, ...sanitizedUserData } = userData.toJSON();
 
-    if (!userData) {
-      message = "Registration Failed! Please Try again.";
-      return responseHandler.returnError(httpStatus.BAD_REQUEST, message);
+    if (!sanitizedUserData) {
+      return resHandler.returnError(
+        httpStatus.BAD_REQUEST,
+        "Registration Failed! Please Try again."
+      );
+    } else {
+      return resHandler.returnSuccess(
+        httpStatus.CREATED,
+        "Successfully Registered the account!",
+        sanitizedUserData
+      );
     }
-
-    userData = userData.toJSON();
-    delete userData.password;
-
-    return responseHandler.returnSuccess(httpStatus.CREATED, message, userData);
   } catch (e) {
     console.log(e);
-    return responseHandler.returnError(
+    return resHandler.returnError(
       httpStatus.BAD_REQUEST,
       "Something went wrong!"
     );
@@ -38,10 +44,10 @@ const register = async (userBody: IUser) => {
 
 async function login(userBody: IUser) {
   try {
-    let message = "Login Successful";
-    let user = await userDao.findByEmail(userBody.email);
-    if (user == null) {
-      return responseHandler.returnError(
+    const userData = await userDao.findByEmail(userBody.email);
+
+    if (userData == null) {
+      return resHandler.returnError(
         httpStatus.BAD_REQUEST,
         "Invalid Credentials!"
       );
@@ -49,21 +55,67 @@ async function login(userBody: IUser) {
 
     const isPasswordValid = await bcrypt.compare(
       userBody.password,
-      user.password
+      userData.password
     );
 
     if (!isPasswordValid) {
-      return responseHandler.returnError(
+      return resHandler.returnError(
         httpStatus.BAD_REQUEST,
         "Invalid Credentials!"
       );
     }
-    user = user.toJSON();
-    delete user.password;
-    return responseHandler.returnSuccess(httpStatus.OK, message, user);
+
+    const { password, ...sanitizedUserData } = userData.toJSON();
+
+    return resHandler.returnSuccess(
+      httpStatus.OK,
+      "Login Successful",
+      sanitizedUserData
+    );
   } catch (e) {
     console.log(e);
-    return responseHandler.returnError(
+    return resHandler.returnError(
+      httpStatus.BAD_REQUEST,
+      "Something went wrong!"
+    );
+  }
+}
+
+async function update(userBody: IUser) {
+  try {
+    const userData = await userDao.findById(userBody.id);
+    const updatedFields: Partial<IUser> = {};
+    if (userData == null) {
+      return resHandler.returnError(httpStatus.NOT_FOUND, "User not found!");
+    }
+
+    if (userBody.first_name !== userData.first_name) {
+      updatedFields.first_name = userBody.first_name;
+    }
+    if (userBody.last_name !== userData.last_name) {
+      updatedFields.last_name = userBody.last_name;
+    }
+    if (userBody.email.toLowerCase() !== userData.email.toLowerCase()) {
+      updatedFields.email = userBody.email.toLowerCase();
+    }
+
+    const userUpdated: IUser = {
+      ...userBody,
+      ...updatedFields,
+    };
+
+    const { id } = userUpdated;
+    const updateUser = await userDao.updateWhere(userUpdated, { id });
+    const { password, ...sanitizedUserData } = updateUser;
+
+    return resHandler.returnSuccess(
+      httpStatus.OK,
+      "Update Successful",
+      sanitizedUserData
+    );
+  } catch (e) {
+    console.log(e);
+    return resHandler.returnError(
       httpStatus.BAD_REQUEST,
       "Something went wrong!"
     );
@@ -73,10 +125,11 @@ async function login(userBody: IUser) {
 async function getUsers() {
   try {
     const usersData = await userDao.findAll();
-    return responseHandler.returnSuccess(httpStatus.OK, "Success", usersData);
+    console.log(usersData);
+    return resHandler.returnSuccess(httpStatus.OK, "Success", usersData);
   } catch (e) {
     console.log(e);
-    return responseHandler.returnError(
+    return resHandler.returnError(
       httpStatus.BAD_REQUEST,
       "Something went wrong!"
     );
@@ -86,20 +139,24 @@ async function getUsers() {
 async function getUserByEmail(email: string) {
   try {
     let message = "Login Successful";
-    let user = await userDao.findByEmail(email);
-    if (user == null) {
-      return responseHandler.returnError(
+    let userData = await userDao.findByEmail(email);
+
+    if (userData == null) {
+      return resHandler.returnError(
         httpStatus.BAD_REQUEST,
         "Invalid Credentials!"
       );
     }
-    user = user.toJSON();
-    delete user.password;
+    const { password, ...sanitizedUserData } = userData.toJSON();
 
-    return responseHandler.returnSuccess(httpStatus.OK, message, user);
+    return resHandler.returnSuccess(
+      httpStatus.OK,
+      "Login Successful",
+      sanitizedUserData
+    );
   } catch (e) {
     console.log(e);
-    return responseHandler.returnError(
+    return resHandler.returnError(
       httpStatus.BAD_REQUEST,
       "Something went wrong!"
     );
@@ -111,4 +168,5 @@ export default {
   login,
   getUsers,
   getUserByEmail,
+  update,
 };
