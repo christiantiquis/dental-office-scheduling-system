@@ -31,8 +31,7 @@ const create = async (req: Request, res: Response): Promise<void> => {
   try {
     const user = await userService.create(req.body);
     const { status, data, code } = user.response;
-
-    let token = status ? jwt.sign(data, JWT_SECRET, { expiresIn: "1h" }) : "";
+    const token = status ? jwt.sign(data, JWT_SECRET, { expiresIn: "1h" }) : "";
 
     res.status(code).send({ ...user.response, token });
   } catch (e) {

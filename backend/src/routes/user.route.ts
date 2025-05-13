@@ -4,7 +4,7 @@ const router = express.Router();
 
 router.get("/", userController.getAll);
 router.get("/user", userController.getByEmail);
-router.post("/register", userController.create);
+router.post("/signup", userController.create);
 router.put("/update", userController.update);
 
 export default router;

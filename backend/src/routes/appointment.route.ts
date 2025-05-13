@@ -4,7 +4,7 @@ const router = express.Router();
 
 router.get("/", appointmentController.getAll);
 router.get("/appointment", appointmentController.getById);
-router.post("/register", appointmentController.create);
+router.post("/book", appointmentController.create);
 router.put("/update", appointmentController.update);
 
 export default router;
