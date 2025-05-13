@@ -16,9 +16,10 @@ const getAll = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-const getByEmail = async (req: Request, res: Response): Promise<void> => {
+const getById = async (req: Request, res: Response): Promise<void> => {
   try {
-    const user = await userService.getByEmail(req.body.email);
+    const { id } = req.params;
+    const user = await userService.getById(id);
 
     res.status(user.response.code).send(user.response);
   } catch (e) {
@@ -53,7 +54,7 @@ const update = async (req: Request, res: Response): Promise<void> => {
 
 export default {
   getAll,
-  getByEmail,
+  getById,
   create,
   update,
 };

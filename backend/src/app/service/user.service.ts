@@ -145,9 +145,9 @@ const getAll = async () => {
   }
 };
 
-const getByEmail = async (email: string) => {
+const getById = async (id: string) => {
   try {
-    let userData = await userDao.findByEmail(email);
+    let userData = await userDao.findById(id);
 
     if (userData == null) {
       return resHandler.returnError(
@@ -175,6 +175,6 @@ export default {
   create,
   login,
   getAll,
-  getByEmail,
+  getById,
   update,
 };

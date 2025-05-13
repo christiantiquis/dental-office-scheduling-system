@@ -1,10 +1,11 @@
 import express from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
+import process from "process";
 import routes from "./routes";
 import model from "./app/models";
 
-const PORT = 3040;
+const PORT = process.env.PORT;
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
