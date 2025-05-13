@@ -1,6 +1,6 @@
 import type React from "react";
-
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/ui/card";
-import { Label } from "../components/ui/label";
+import { Label } from "@radix-ui/react-label";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 
@@ -21,6 +21,7 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [passwordError, setPasswordError] = useState("");
+  const navigate = useNavigate();
 
   const validatePasswords = () => {
     if (password !== confirmPassword) {
@@ -37,6 +38,7 @@ export default function SignupPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setPasswordError("");
 
     if (!validatePasswords()) {
       return;
@@ -49,12 +51,40 @@ export default function SignupPage() {
 
     // In a real app, you would handle registration here
     console.log({ firstName, lastName, email, password });
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/user/signup`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            first_name: firstName,
+            last_name: lastName,
+            email,
+            password,
+          }),
+        }
+      );
+
+      const data = await response.json();
+      if (response.ok) {
+        // Handle successful signup (e.g., save token to localStorage)
+        localStorage.setItem("token", data.token);
+        // alert("Login successful!");
+      } else {
+        console.log(data.message || "Login failed");
+      }
+      navigate("/", { replace: true });
+    } catch (err) {
+      console.log(err);
+      console.log("An error occurred. Please try again.");
+    }
 
     setIsLoading(false);
   };
 
   return (
-    <div className="container flex items-center justify-center min-h-[calc(100vh-8rem)] py-12 m-auto">
+    <div className="container flex items-center justify-center min-h-[calc(100vh-8rem)] py-12 m-auto h-screen">
       <Card className="flex">
         <div className="flex flex-wrap items-center bg-[#D3EDF8] rounded-xl">
           <img

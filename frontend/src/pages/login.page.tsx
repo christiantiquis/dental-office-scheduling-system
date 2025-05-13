@@ -1,7 +1,6 @@
 "use client";
 
 import type React from "react";
-
 import { useState } from "react";
 import {
   Card,
@@ -14,11 +13,13 @@ import {
 import { Label } from "../components/ui/label";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,12 +30,37 @@ export default function LoginPage() {
 
     // In a real app, you would handle authentication here
     console.log({ email, password });
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/auth/login`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        }
+      );
+
+      const data = await response.json();
+      console.log("test:", data);
+      if (response.ok) {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("username", data.data.first_name);
+        localStorage.setItem("email", data.data.email);
+        // alert("Login successful!");
+        navigate("/", { replace: true });
+      } else {
+        console.log(data.message || "Login failed");
+      }
+    } catch (err) {
+      console.log(err);
+      console.log("An error occurred. Please try again.");
+    }
 
     setIsLoading(false);
   };
 
   return (
-    <div className="container flex items-center justify-center min-h-[calc(100vh-8rem)] py-12 m-auto">
+    <div className="container flex items-center justify-center min-h-[calc(100vh-8rem)] py-12 m-auto h-screen">
       <Card className="mx-auto max-w-md w-full">
         <img className="h-80 w-full object-cover" src="/logo_big.png" />
         <CardHeader className="space-y-1 text-center">

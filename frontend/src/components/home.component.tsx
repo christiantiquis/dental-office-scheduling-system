@@ -1,6 +1,18 @@
-import { Button } from "@/app/components/ui/button";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 export default function Home() {
+  const nagivate = useNavigate();
+
+  const handleClickBook = () => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      nagivate("/appointment/booking");
+    } else {
+      nagivate("/signup");
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-full text-center">
       {/* Hero Section */}
@@ -42,8 +54,9 @@ export default function Home() {
                   asChild
                   size="lg"
                   className="bg-sky-600 hover:bg-sky-700"
+                  onClick={handleClickBook}
                 >
-                  <a href="/booking">Book Appointment</a>
+                  <div>Book Appointment</div>
                 </Button>
               </div>
             </div>

@@ -1,8 +1,8 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import HomePage from "@/app/pages/home.page";
-import LoginPage from "@/app/pages/login.page";
-import SignupPage from "@/app/pages/signup.page";
-import BookingPage from "@/app/pages/booking.page";
+import HomePage from "@/pages/home.page";
+import LoginPage from "@/pages/login.page";
+import SignupPage from "@/pages/signup.page";
+import BookingPage from "@/pages/booking.page";
 
 const RouteComponent = () => {
   return (
@@ -11,7 +11,8 @@ const RouteComponent = () => {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
-        <Route path="/booking" element={<BookingPage />} />
+        <Route path="/appointment" element={<HomePage />} />
+        <Route path="/appointment/booking" element={<BookingPage />} />
       </Routes>
     </BrowserRouter>
   );

@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CalendarIcon, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
 import {
@@ -12,25 +12,21 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "../components/ui/card";
-import { Button } from "../components/ui/button";
-import { Label } from "../components/ui/label";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "../components/ui/popover";
-import { Calendar } from "../components/ui/calendar";
+} from "./ui/card";
+import { Button } from "./ui/button";
+import { Label } from "./ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Calendar } from "./ui/calendar";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../components/ui/select";
-import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
-import { Input } from "../components/ui/input";
-import { Textarea } from "../components/ui/textarea";
+} from "./ui/select";
+import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
+import { Input } from "./ui/input";
+import { Textarea } from "./ui/textarea";
 import {
   Form,
   FormControl,
@@ -52,7 +48,7 @@ const FormSchema = z.object({
   }),
 });
 
-export default function BookingPage() {
+export default function BookingForm() {
   const [date, setDate] = useState<Date | undefined>(undefined);
   // const [timeSlot, setTimeSlot] = useState<string | undefined>(undefined);
   const [service, setService] = useState<string | undefined>(undefined);
@@ -72,6 +68,27 @@ export default function BookingPage() {
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
   });
+
+  const initialFetch = useCallback(async () => {
+    const storedEmail = localStorage.getItem("email");
+    console.log("storedEmail:", storedEmail);
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/api/user/getByEmail`,
+      {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ storedEmail }),
+      }
+    );
+
+    const data = await response.json();
+    console.log("test:", data);
+  }, []);
+
+  useEffect(() => {
+    initialFetch();
+    setFirstName("TEST");
+  }, [initialFetch]);
 
   // Available time slots
   // const timeSlots = [
