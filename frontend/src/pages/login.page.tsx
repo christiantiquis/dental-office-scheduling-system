@@ -41,11 +41,10 @@ export default function LoginPage() {
       );
 
       const data = await response.json();
-      console.log("test:", data);
       if (response.ok) {
         localStorage.setItem("token", data.token);
         localStorage.setItem("username", data.data.first_name);
-        localStorage.setItem("email", data.data.email);
+        localStorage.setItem("userId", data.data.id);
         // alert("Login successful!");
         navigate("/", { replace: true });
       } else {

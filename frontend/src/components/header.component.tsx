@@ -2,22 +2,39 @@ import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { Button } from "./ui/button";
 import { useNavigate } from "react-router-dom";
+import { useAppDispatch } from "@/store/hooks";
+import { setUser } from "@/store/slices/user.slice";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState("");
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+
+  const initialFetch = async (id: string) => {
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/api/user/${id}`,
+      {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+
+    const data = await response.json();
+    dispatch(setUser(data.data));
+  };
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    const name = localStorage.getItem("username") || "Test2";
-    // const email = localStorage.getItem("email");
-    if (token && name) {
+    const name = localStorage.getItem("username");
+    const userId = localStorage.getItem("userId");
+    if (token && name && userId) {
       setIsLoggedIn(true);
       setUsername(name);
+      initialFetch(userId);
     }
-  }, []);
+  }, [dispatch]); // no need to include `initialFetch`
 
   const handleLogin = () => {
     navigate("/login", { replace: true });
@@ -58,16 +75,23 @@ export default function Header() {
         {/* Desktop navigation */}
         <nav className="hidden md:flex items-center gap-6">
           {isLoggedIn && (
-            <div className="mr-2 pointer-events-none">
+            <div className="pointer-events-none border-r-2 border-r-blue-950">
               Hello,{"  "}
-              <span className="font-bold underline uppercase">{username}</span>
-              {"  "}!
+              <span className="font-bold underline uppercase mr-4">
+                {username}
+              </span>
             </div>
           )}
-          <div className="text-sm font-medium hover:text-sky-600 transition-colors cursor-pointer">
+          <div
+            className="text-sm font-medium hover:text-sky-600 transition-colors cursor-pointer"
+            onClick={() => navigate("/")}
+          >
             Home
           </div>
-          <div className="text-sm font-medium hover:text-sky-600 transition-colors cursor-pointer">
+          <div
+            className="text-sm font-medium hover:text-sky-600 transition-colors cursor-pointer"
+            onClick={() => navigate("/appointment")}
+          >
             Appointment
           </div>
           {!isLoggedIn && (

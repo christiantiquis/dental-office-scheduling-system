@@ -3,6 +3,7 @@ import HomePage from "@/pages/home.page";
 import LoginPage from "@/pages/login.page";
 import SignupPage from "@/pages/signup.page";
 import BookingPage from "@/pages/booking.page";
+import AppointmentsPage from "@/pages/appointment.page";
 
 const RouteComponent = () => {
   return (
@@ -11,7 +12,7 @@ const RouteComponent = () => {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
-        <Route path="/appointment" element={<HomePage />} />
+        <Route path="/appointment" element={<AppointmentsPage />} />
         <Route path="/appointment/booking" element={<BookingPage />} />
       </Routes>
     </BrowserRouter>

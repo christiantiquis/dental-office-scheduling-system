@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { CalendarIcon, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
 import {
@@ -41,6 +41,10 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAppSelector } from "@/store/hooks";
+import type { IDoctor } from "@/interfaces/doctor.interface";
+import { DentalServices } from "@/constants/services.constants";
+import type { IAppointment } from "@/interfaces/appointment.interface";
 
 const FormSchema = z.object({
   datetime: z.date({
@@ -51,7 +55,7 @@ const FormSchema = z.object({
 export default function BookingForm() {
   const [date, setDate] = useState<Date | undefined>(undefined);
   // const [timeSlot, setTimeSlot] = useState<string | undefined>(undefined);
-  const [service, setService] = useState<string | undefined>(undefined);
+  const [service, setService] = useState<string>("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -65,69 +69,47 @@ export default function BookingForm() {
   const [isOpen, setIsOpen] = useState(false);
   const [time, setTime] = useState<string>("05:00");
   const [doctor, setDoctor] = useState<string>("");
+  const [doctors, setDoctors] = useState<IDoctor[]>([]);
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
   });
 
-  const initialFetch = useCallback(async () => {
-    const storedEmail = localStorage.getItem("email");
-    console.log("storedEmail:", storedEmail);
+  const user = useAppSelector((state) => state.UserReducer);
+
+  const createAppointment = async (appointmentBody: Partial<IAppointment>) => {
     const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/api/user/getByEmail`,
+      `${import.meta.env.VITE_API_URL}/api/appointment/book`,
       {
-        method: "GET",
+        method: "post",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ storedEmail }),
+        body: JSON.stringify(appointmentBody),
       }
     );
 
     const data = await response.json();
-    console.log("test:", data);
-  }, []);
+    setDoctors(data.data);
+    // dispatch(setUser(data.data));
+  };
+
+  const getDoctors = async () => {
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/doctor`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const data = await response.json();
+    setDoctors(data.data);
+    // dispatch(setUser(data.data));
+  };
 
   useEffect(() => {
-    initialFetch();
-    setFirstName("TEST");
-  }, [initialFetch]);
-
-  // Available time slots
-  // const timeSlots = [
-  //   "9:00 AM",
-  //   "9:30 AM",
-  //   "10:00 AM",
-  //   "10:30 AM",
-  //   "11:00 AM",
-  //   "11:30 AM",
-  //   "1:00 PM",
-  //   "1:30 PM",
-  //   "2:00 PM",
-  //   "2:30 PM",
-  //   "3:00 PM",
-  //   "3:30 PM",
-  //   "4:00 PM",
-  //   "4:30 PM",
-  // ];
-
-  const doctors = [
-    "Doctor 1",
-    "Doctor 2",
-    "Doctor 3",
-    "Doctor 4",
-    "Doctor 5",
-    "Doctor 6",
-  ];
+    setFirstName(user.first_name);
+    setLastName(user.last_name);
+    setEmail(user.email);
+    getDoctors();
+  }, [user]);
 
   // Available services
-  const services = [
-    "Regular Check-up",
-    "Teeth Cleaning",
-    "Teeth Whitening",
-    "Filling",
-    "Root Canal",
-    "Extraction",
-    "Consultation",
-    "Others",
-  ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,6 +130,18 @@ export default function BookingForm() {
       isNewPatient,
       time,
     });
+
+    const appointmentDetails: Partial<IAppointment> = {
+      date: date ? new Date(date) : new Date(),
+      service,
+      patient_id: user.id,
+      doctor_id: doctor,
+      time: time,
+      notes: notes,
+      status: "confirmed",
+    };
+
+    createAppointment(appointmentDetails);
 
     setIsLoading(false);
     setIsSuccess(true);
@@ -267,10 +261,12 @@ export default function BookingForm() {
                                 onDayClick={() => setIsOpen(false)}
                                 fromYear={2000}
                                 toYear={new Date().getFullYear()}
-                                // disabled={(date) =>
-                                //   Number(date) < Date.now() - 1000 * 60 * 60 * 24 ||
-                                //   Number(date) > Date.now() + 1000 * 60 * 60 * 24 * 30
-                                // }
+                                disabled={(date) =>
+                                  Number(date) <
+                                    Date.now() - 1000 * 60 * 60 * 24 ||
+                                  Number(date) >
+                                    Date.now() + 1000 * 60 * 60 * 24 * 30
+                                }
                                 defaultMonth={field.value}
                               />
                             </PopoverContent>
@@ -345,8 +341,8 @@ export default function BookingForm() {
                     </SelectTrigger>
                     <SelectContent>
                       {doctors.map((doctor) => (
-                        <SelectItem key={doctor} value={doctor}>
-                          {doctor}
+                        <SelectItem key={doctor.id} value={doctor.id}>
+                          {"Dr. "} {doctor.first_name} {doctor.last_name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -360,9 +356,9 @@ export default function BookingForm() {
                       <SelectValue placeholder="Select a service" />
                     </SelectTrigger>
                     <SelectContent>
-                      {services.map((svc) => (
-                        <SelectItem key={svc} value={svc}>
-                          {svc}
+                      {DentalServices.map((svc) => (
+                        <SelectItem key={svc.value} value={svc.name}>
+                          {svc.text}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -387,108 +383,6 @@ export default function BookingForm() {
                 </div>
               </CardContent>
             </Card>
-
-            {/* Left column - Appointment details */}
-            {/* <Card>
-              <CardHeader>
-                <CardTitle>Appointment Details</CardTitle>
-                <CardDescription>
-                  Select your preferred date, time, and service
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="date">Date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full justify-start text-left font-normal"
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {date ? format(date, "PPP") : "Select a date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      {/* <Calendar
-                        mode="single"
-                        captionLayout="dropdown"
-                        selected={date || field.value}
-                        onSelect={(selectedDate) => {
-                          const [hours, minutes] = time.split(":")!;
-                          selectedDate?.setHours(
-                            parseInt(hours),
-                            parseInt(minutes)
-                          );
-                          setDate(selectedDate!);
-                          field.onChange(selectedDate);
-                        }}
-                        onDayClick={() => setIsOpen(false)}
-                        fromYear={2000}
-                        toYear={new Date().getFullYear()}
-                        defaultMonth={field.value}
-                        disabled={(date) => {
-                          // Disable weekends and past dates
-                          const day = date.getDay();
-                          const isPastDate =
-                            date < new Date(new Date().setHours(0, 0, 0, 0));
-                          return day === 0 || day === 6 || isPastDate;
-                        }}
-                      /> */}
-            {/* </PopoverContent>
-                  </Popover>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="time">Time</Label>
-                  <Select value={timeSlot} onValueChange={setTimeSlot}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a time slot" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {timeSlots.map((slot) => (
-                        <SelectItem key={slot} value={slot}>
-                          {slot}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="service">Service</Label>
-                  <Select value={service} onValueChange={setService}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a service" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {services.map((svc) => (
-                        <SelectItem key={svc} value={svc}>
-                          {svc}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Are you a new patient?</Label>
-                  <RadioGroup
-                    value={isNewPatient}
-                    onValueChange={setIsNewPatient}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="yes" id="new-yes" />
-                      <Label htmlFor="new-yes">Yes</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="no" id="new-no" />
-                      <Label htmlFor="new-no">No</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-              </CardContent>
-            </Card> */}
 
             {/* Right column - Personal information */}
             <Card>
@@ -538,7 +432,7 @@ export default function BookingForm() {
                     type="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    required
+                    // required
                   />
                 </div>
 
@@ -568,9 +462,9 @@ export default function BookingForm() {
                 !service ||
                 !firstName ||
                 !lastName ||
-                !email ||
-                !phone ||
-                !isNewPatient
+                !email
+                // !phone ||
+                // !isNewPatient
               }
             >
               {isLoading ? "Booking Appointment..." : "Book Appointment"}
