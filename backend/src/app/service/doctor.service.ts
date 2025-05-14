@@ -134,7 +134,6 @@ const update = async (doctorBody: IDoctor) => {
 const getAll = async () => {
   try {
     const doctorsData = await doctorDao.findAll();
-    console.log(doctorsData);
     return resHandler.returnSuccess(httpStatus.OK, "Success", doctorsData);
   } catch (e) {
     console.log(e);

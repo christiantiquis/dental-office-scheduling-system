@@ -8,12 +8,6 @@ const create = async (appointmentBody: IAppointment) => {
     const appointmentToCreate = {
       ...appointmentBody,
     };
-    // if (await appointmentDao.isEmailExists(appointmentToCreate.email)) {
-    //   return resHandler.returnError(
-    //     httpStatus.BAD_REQUEST,
-    //     "Email already taken"
-    //   );
-    // }
 
     const appointmentData = await appointmentDao.create(appointmentToCreate);
 
@@ -64,12 +58,9 @@ const update = async (appointmentBody: IAppointment) => {
     if (appointmentBody.notes !== appointmentData.notes) {
       updatedFields.notes = appointmentBody.notes;
     }
-    // if (
-    //   appointmentBody.email.toLowerCase() !==
-    //   appointmentData.email.toLowerCase()
-    // ) {
-    //   updatedFields.email = appointmentBody.email.toLowerCase();
-    // }
+    if (appointmentBody.status !== appointmentData.status) {
+      updatedFields.status = appointmentBody.status;
+    }
 
     const appointmentUpdated: IAppointment = {
       ...appointmentBody,
@@ -104,7 +95,6 @@ const update = async (appointmentBody: IAppointment) => {
 const getAll = async () => {
   try {
     const appointmentsData = await appointmentDao.findAll();
-    console.log(appointmentsData);
     return resHandler.returnSuccess(httpStatus.OK, "Success", appointmentsData);
   } catch (e) {
     console.log(e);

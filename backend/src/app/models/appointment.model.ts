@@ -2,7 +2,7 @@
 
 import { Model, Sequelize } from "sequelize";
 import type { DataTypes as SequelizeDataTypes } from "sequelize";
-import { IAppointment, Services } from "../interface/appointment.interface";
+import { IAppointment } from "../interface/appointment.interface";
 
 export default (sequelize: Sequelize, DataTypes: typeof SequelizeDataTypes) => {
   class Appointment extends Model<IAppointment> {
@@ -28,12 +28,10 @@ export default (sequelize: Sequelize, DataTypes: typeof SequelizeDataTypes) => {
       doctor_id: DataTypes.UUID,
       date: DataTypes.DATE,
       time: DataTypes.STRING,
-      service: {
-        type: DataTypes.ENUM,
-        // values: Object.values(Services) as readonly string[],
-        values: Object.values(Services).filter(
-          (v) => typeof v === "string"
-        ) as string[],
+      service: DataTypes.STRING,
+      status: {
+        type: DataTypes.STRING,
+        values: ["completed", "cancelled", "confirmed"],
       },
       notes: DataTypes.STRING,
     },

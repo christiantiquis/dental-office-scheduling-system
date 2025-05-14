@@ -134,7 +134,6 @@ const update = async (userBody: IUser) => {
 const getAll = async () => {
   try {
     const usersData = await userDao.findAll();
-    console.log(usersData);
     return resHandler.returnSuccess(httpStatus.OK, "Success", usersData);
   } catch (e) {
     console.log(e);
