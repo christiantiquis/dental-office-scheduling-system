@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -31,6 +31,7 @@ import type { IAppointment } from "@/interfaces/appointment.interface";
 import type { IDoctor } from "@/interfaces/doctor.interface";
 import { DentalServices } from "@/constants/services.constants";
 import { useNavigate } from "react-router-dom";
+import { useAppSelector } from "@/store/hooks";
 
 // Mock data for appointments
 // const upcomingAppointments = [
@@ -92,9 +93,11 @@ export default function Appointments() {
     null
   );
   const [doctors, setDoctors] = useState<IDoctor[]>([]);
+
+  const patientId = useAppSelector((state) => state.UserReducer.id);
   const navigate = useNavigate();
 
-  const getDoctors = async () => {
+  const getDoctors = useCallback(async () => {
     const response = await fetch(`${import.meta.env.VITE_API_URL}/api/doctor`, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
@@ -102,12 +105,17 @@ export default function Appointments() {
 
     const data = await response.json();
     setDoctors(data.data);
-    // dispatch(setUser(data.data));
-  };
+  }, []);
 
-  const getAppointment = async () => {
+  const getAppointment = useCallback(async () => {
+    const localPatientId = patientId
+      ? patientId
+      : localStorage.getItem("userId");
+    if (!localPatientId) return;
     const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/api/appointment/`,
+      `${
+        import.meta.env.VITE_API_URL
+      }/api/appointment/patient/${localPatientId}`,
       {
         method: "get",
         headers: { "Content-Type": "application/json" },
@@ -133,12 +141,12 @@ export default function Appointments() {
     );
 
     setAppointments(filteredAppointments);
-    // dispatch(setUser(data.data));
-  };
+  }, []);
+
   useEffect(() => {
     getAppointment();
     getDoctors();
-  }, []);
+  }, [getDoctors, getAppointment]);
 
   const handleCancelAppointment = (id: string) => {
     setAppointmentToCancel(id);
@@ -181,11 +189,11 @@ export default function Appointments() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "confirmed":
-        return <Badge className="bg-green-500">Confirmed</Badge>;
+        return <Badge className="bg-green-500 h-[36px]">Confirmed</Badge>;
       case "completed":
-        return <Badge className="bg-blue-500">Completed</Badge>;
+        return <Badge className="bg-blue-500 h-[36px]">Completed</Badge>;
       case "cancelled":
-        return <Badge className="bg-red-500">Cancelled</Badge>;
+        return <Badge className="bg-red-500 h-[36px]">Cancelled</Badge>;
       default:
         return <Badge>Unknown</Badge>;
     }
@@ -261,7 +269,7 @@ export default function Appointments() {
                           </div>
                           <div className="flex items-center space-x-2">
                             <Clock className="h-5 w-5 text-sky-600" />
-                            <span>{format(appointment.date, "h:mm a")}</span>
+                            <span>{appointment.time}</span>
                           </div>
                           <div className="font-medium">
                             {getServiceName(appointment.service)}

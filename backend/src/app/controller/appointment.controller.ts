@@ -15,7 +15,44 @@ const getAll = async (req: Request, res: Response): Promise<void> => {
 
 const getById = async (req: Request, res: Response): Promise<void> => {
   try {
-    const appointment = await appointmentService.getById(req.body.id);
+    const { id } = req.params;
+    const appointment = await appointmentService.getById(id);
+
+    res.status(appointment.response.code).send(appointment.response);
+  } catch (e) {
+    console.log(e);
+    res.status(httpStatus.BAD_GATEWAY).send(e);
+  }
+};
+
+const getByDoctorId = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const appointment = await appointmentService.getByDoctorId(id);
+
+    res.status(appointment.response.code).send(appointment.response);
+  } catch (e) {
+    console.log(e);
+    res.status(httpStatus.BAD_GATEWAY).send(e);
+  }
+};
+
+const getByTime = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { time } = req.params;
+    const appointment = await appointmentService.getByTime(time);
+
+    res.status(appointment.response.code).send(appointment.response);
+  } catch (e) {
+    console.log(e);
+    res.status(httpStatus.BAD_GATEWAY).send(e);
+  }
+};
+
+const getByPatientId = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const appointment = await appointmentService.getByPatientId(id);
 
     res.status(appointment.response.code).send(appointment.response);
   } catch (e) {
@@ -26,6 +63,7 @@ const getById = async (req: Request, res: Response): Promise<void> => {
 
 const create = async (req: Request, res: Response): Promise<void> => {
   try {
+    console.log(req.body);
     const appointment = await appointmentService.create(req.body);
     const { status, data, code } = appointment.response;
 
@@ -50,6 +88,9 @@ const update = async (req: Request, res: Response): Promise<void> => {
 export default {
   getAll,
   getById,
+  getByDoctorId,
+  getByPatientId,
+  getByTime,
   create,
   update,
 };

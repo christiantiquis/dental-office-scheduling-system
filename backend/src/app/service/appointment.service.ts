@@ -105,6 +105,44 @@ const getAll = async () => {
   }
 };
 
+const getByPatientId = async (id: string) => {
+  try {
+    let appointmentsData = await appointmentDao.findByPatientId(id);
+    return resHandler.returnSuccess(httpStatus.OK, "Success", appointmentsData);
+  } catch (e) {
+    console.log(e);
+    return resHandler.returnError(
+      httpStatus.BAD_REQUEST,
+      "Something went wrong!"
+    );
+  }
+};
+
+const getByDoctorId = async (id: string) => {
+  try {
+    let appointmentsData = await appointmentDao.findByDoctorId(id);
+    return resHandler.returnSuccess(httpStatus.OK, "Success", appointmentsData);
+  } catch (e) {
+    console.log(e);
+    return resHandler.returnError(
+      httpStatus.BAD_REQUEST,
+      "Something went wrong!"
+    );
+  }
+};
+const getByTime = async (time: string) => {
+  try {
+    let appointmentsData = await appointmentDao.findByTime(time);
+    return resHandler.returnSuccess(httpStatus.OK, "Success", appointmentsData);
+  } catch (e) {
+    console.log(e);
+    return resHandler.returnError(
+      httpStatus.BAD_REQUEST,
+      "Something went wrong!"
+    );
+  }
+};
+
 const getById = async (id: string) => {
   try {
     let appointmentData = await appointmentDao.findById(id);
@@ -134,6 +172,9 @@ const getById = async (id: string) => {
 export default {
   create,
   getAll,
+  getByDoctorId,
+  getByPatientId,
+  getByTime,
   getById,
   update,
 };

@@ -18,8 +18,8 @@ const getAll = async (req: Request, res: Response): Promise<void> => {
 
 const getById = async (req: Request, res: Response): Promise<void> => {
   try {
-    const doctor = await doctorService.getById("example@example.com");
-
+    const { id } = req.params;
+    const doctor = await doctorService.getById(id);
     res.status(doctor.response.code).send(doctor.response);
   } catch (e) {
     console.log(e);

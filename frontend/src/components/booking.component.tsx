@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CalendarIcon, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
 import {
@@ -24,7 +24,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import {
@@ -45,6 +44,7 @@ import { useAppSelector } from "@/store/hooks";
 import type { IDoctor } from "@/interfaces/doctor.interface";
 import { DentalServices } from "@/constants/services.constants";
 import type { IAppointment } from "@/interfaces/appointment.interface";
+import { useNavigate } from "react-router-dom";
 
 const FormSchema = z.object({
   datetime: z.date({
@@ -52,37 +52,55 @@ const FormSchema = z.object({
   }),
 });
 
+function convertTo12HourFormat(time: string): string {
+  const [hourStr, minuteStr] = time.split(":");
+  let hour = parseInt(hourStr, 10);
+  const minute = parseInt(minuteStr, 10);
+
+  const period = hour >= 12 ? "PM" : "AM";
+  hour = hour % 12;
+  if (hour === 0) hour = 12;
+
+  return `${hour}:${minute.toString().padStart(2, "0")} ${period}`;
+}
+
+const getServiceName = (name: string) => {
+  const service = DentalServices.find((svc) => svc.name === name);
+  return service ? service.text : "Unknown Service";
+};
+
 export default function BookingForm() {
   const [date, setDate] = useState<Date | undefined>(undefined);
-  // const [timeSlot, setTimeSlot] = useState<string | undefined>(undefined);
   const [service, setService] = useState<string>("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
-  const [isNewPatient, setIsNewPatient] = useState<string | undefined>(
-    undefined
-  );
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const [time, setTime] = useState<string>("05:00");
+  const [time, setTime] = useState<string>("");
   const [doctor, setDoctor] = useState<string>("");
   const [doctors, setDoctors] = useState<IDoctor[]>([]);
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
   });
+  const [bookedDoctors, setBookedDoctors] = useState<string[]>([]);
+  const navigate = useNavigate();
 
   const user = useAppSelector((state) => state.UserReducer);
 
   const createAppointment = async (appointmentBody: Partial<IAppointment>) => {
+    const modAppointmentBody = {
+      ...appointmentBody,
+      date: appointmentBody.date?.toISOString(),
+    };
     const response = await fetch(
       `${import.meta.env.VITE_API_URL}/api/appointment/book`,
       {
         method: "post",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(appointmentBody),
+        body: JSON.stringify(modAppointmentBody),
       }
     );
 
@@ -91,7 +109,7 @@ export default function BookingForm() {
     // dispatch(setUser(data.data));
   };
 
-  const getDoctors = async () => {
+  const getDoctors = useCallback(async () => {
     const response = await fetch(`${import.meta.env.VITE_API_URL}/api/doctor`, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
@@ -100,14 +118,38 @@ export default function BookingForm() {
     const data = await response.json();
     setDoctors(data.data);
     // dispatch(setUser(data.data));
-  };
+  }, []);
+
+  const getAppointmentsByTime = useCallback(async () => {
+    if (!date) return;
+    const time = date?.toISOString();
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/api/appointment/time/${time}`,
+      {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+
+    const data = await response.json();
+    const bookedAppointmentsData: IAppointment[] = data.data;
+    const bookDoctors = bookedAppointmentsData.map(
+      (n: IAppointment) => n.doctor_id
+    );
+    setBookedDoctors(bookDoctors);
+    // dispatch(setUser(data.data));
+  }, [date]);
+
+  useEffect(() => {
+    getAppointmentsByTime();
+  }, [getAppointmentsByTime]);
 
   useEffect(() => {
     setFirstName(user.first_name);
     setLastName(user.last_name);
     setEmail(user.email);
     getDoctors();
-  }, [user]);
+  }, [user, getDoctors]);
 
   // Available services
 
@@ -125,9 +167,7 @@ export default function BookingForm() {
       firstName,
       lastName,
       email,
-      phone,
       notes,
-      isNewPatient,
       time,
     });
 
@@ -149,7 +189,7 @@ export default function BookingForm() {
 
   if (isSuccess) {
     return (
-      <div className="container flex items-center justify-center min-h-[calc(100vh-8rem)] py-12">
+      <div className="container flex items-center justify-center min-h-[calc(100vh-8rem)] py-12 w-screen m-auto">
         <Card className="mx-auto max-w-md w-full">
           <CardHeader className="space-y-1 text-center">
             <div className="flex justify-center mb-4">
@@ -164,29 +204,33 @@ export default function BookingForm() {
           </CardHeader>
           <CardContent className="space-y-4 text-center">
             <div className="space-y-1">
-              <p className="font-medium">Date & Time:</p>
+              <p className="font-bold">Date & Time:</p>
               <p>
-                {/* {date ? format(date, "PPPP") : ""} at {timeSlot} */}
-                {date ? format(date, "PPPP") : ""} at {time}
+                {date ? format(date, "PPPP") : ""} at {time ?? "09:00"}
               </p>
             </div>
             <div className="space-y-1">
-              <p className="font-medium">Service:</p>
-              <p>{service}</p>
+              <p className="font-bold">Service:</p>
+              <p>{getServiceName(service)}</p>
             </div>
             <div className="space-y-1">
-              <p className="font-medium">Patient:</p>
+              <p className="font-bold">Patient:</p>
               <p>
                 {firstName} {lastName}
               </p>
             </div>
           </CardContent>
           <CardFooter className="flex flex-col space-y-2">
-            <Button asChild className="w-full bg-sky-600 hover:bg-sky-700">
-              <a href="/">Return to Home</a>
+            <Button
+              asChild
+              className="w-full bg-sky-600 hover:bg-sky-700 cursor-pointer"
+            >
+              <div onClick={() => navigate("/")}>Return to Home</div>
             </Button>
-            <Button variant="outline" asChild className="w-full">
-              <a href="/account">View My Appointments</a>
+            <Button variant="outline" asChild className="w-full cursor-pointer">
+              <div onClick={() => navigate("/appointment")}>
+                View My Appointments
+              </div>
             </Button>
           </CardFooter>
         </Card>
@@ -206,6 +250,65 @@ export default function BookingForm() {
 
         <form onSubmit={handleSubmit}>
           <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Personal Information</CardTitle>
+                <CardDescription>
+                  Please provide your contact details
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="first-name">First Name</Label>
+                    <Input
+                      id="first-name"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      required
+                      disabled
+                      className="font-bold"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="last-name">Last Name</Label>
+                    <Input
+                      id="last-name"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      required
+                      disabled
+                      className="font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    disabled
+                    className="font-bold"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="notes">Additional Notes (Optional)</Label>
+                  <Textarea
+                    id="notes"
+                    placeholder="Any specific concerns or questions?"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    className="min-h-[100px]"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle>Appointment Details</CardTitle>
@@ -233,7 +336,11 @@ export default function BookingForm() {
                                   )}
                                 >
                                   {field.value ? (
-                                    `${format(field.value, "PPP")}, ${time}`
+                                    `${format(field.value, "PP")}${
+                                      time == "" ? "" : ","
+                                    } ${
+                                      time ? convertTo12HourFormat(time) : ""
+                                    }`
                                   ) : (
                                     <span>Pick a date</span>
                                   )}
@@ -250,11 +357,17 @@ export default function BookingForm() {
                                 captionLayout="dropdown"
                                 selected={date || field.value}
                                 onSelect={(selectedDate) => {
-                                  const [hours, minutes] = time.split(":")!;
-                                  selectedDate?.setHours(
-                                    parseInt(hours),
-                                    parseInt(minutes)
-                                  );
+                                  // let selectedTime = time;
+                                  // if (!selectedTime) {
+                                  //   selectedTime = "09:00";
+                                  //   setTime(selectedTime);
+                                  // }
+                                  // const [hours, minutes] =
+                                  //   selectedTime.split(":");
+                                  // selectedDate?.setHours(
+                                  //   parseInt(hours),
+                                  //   parseInt(minutes)
+                                  // );
                                   setDate(selectedDate!);
                                   field.onChange(selectedDate);
                                 }}
@@ -262,10 +375,10 @@ export default function BookingForm() {
                                 fromYear={2000}
                                 toYear={new Date().getFullYear()}
                                 disabled={(date) =>
-                                  Number(date) <
-                                    Date.now() - 1000 * 60 * 60 * 24 ||
+                                  Number(date) < Date.now() ||
                                   Number(date) >
-                                    Date.now() + 1000 * 60 * 60 * 24 * 30
+                                    Date.now() + 1000 * 60 * 60 * 24 * 30 ||
+                                  new Date(date).getDay() === 0
                                 }
                                 defaultMonth={field.value}
                               />
@@ -288,6 +401,7 @@ export default function BookingForm() {
                             <Select
                               defaultValue={time!}
                               onValueChange={(e) => {
+                                console.log("e", e);
                                 setTime(e);
                                 if (date) {
                                   const [hours, minutes] = e.split(":");
@@ -302,26 +416,29 @@ export default function BookingForm() {
                               }}
                             >
                               <SelectTrigger className="font-normal focus:ring-0 w-[120px] focus:ring-offset-0">
-                                <SelectValue />
+                                <SelectValue placeholder="Select Time" />
                               </SelectTrigger>
                               <SelectContent>
                                 <ScrollArea className="h-[15rem]">
-                                  {Array.from({ length: 96 }).map((_, i) => {
-                                    const hour = Math.floor(i / 4)
-                                      .toString()
-                                      .padStart(2, "0");
-                                    const minute = ((i % 4) * 15)
-                                      .toString()
-                                      .padStart(2, "0");
-                                    return (
+                                  {Array.from({ length: 96 })
+                                    .map((_, i) => {
+                                      const hour = Math.floor(i / 2)
+                                        .toString()
+                                        .padStart(2, "0");
+                                      const minute = i % 2 === 0 ? "00" : "30";
+                                      return { i, hour, minute };
+                                    })
+                                    .filter(({ i }) => i >= 18 && i < 34) // Adjust
+                                    .map(({ i, hour, minute }) => (
                                       <SelectItem
                                         key={i}
                                         value={`${hour}:${minute}`}
                                       >
-                                        {hour}:{minute}
+                                        {convertTo12HourFormat(
+                                          `${hour}:${minute}`
+                                        )}
                                       </SelectItem>
-                                    );
-                                  })}
+                                    ))}
                                 </ScrollArea>
                               </SelectContent>
                             </Select>
@@ -341,7 +458,11 @@ export default function BookingForm() {
                     </SelectTrigger>
                     <SelectContent>
                       {doctors.map((doctor) => (
-                        <SelectItem key={doctor.id} value={doctor.id}>
+                        <SelectItem
+                          key={doctor.id}
+                          value={doctor.id}
+                          disabled={bookedDoctors.includes(doctor.id)}
+                        >
                           {"Dr. "} {doctor.first_name} {doctor.last_name}
                         </SelectItem>
                       ))}
@@ -364,88 +485,6 @@ export default function BookingForm() {
                     </SelectContent>
                   </Select>
                 </div>
-
-                <div className="space-y-2">
-                  <Label>Are you a new patient?</Label>
-                  <RadioGroup
-                    value={isNewPatient}
-                    onValueChange={setIsNewPatient}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="yes" id="new-yes" />
-                      <Label htmlFor="new-yes">Yes</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="no" id="new-no" />
-                      <Label htmlFor="new-no">No</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Right column - Personal information */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Personal Information</CardTitle>
-                <CardDescription>
-                  Please provide your contact details
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="first-name">First Name</Label>
-                    <Input
-                      id="first-name"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="last-name">Last Name</Label>
-                    <Input
-                      id="last-name"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    // required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="notes">Additional Notes (Optional)</Label>
-                  <Textarea
-                    id="notes"
-                    placeholder="Any specific concerns or questions?"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    className="min-h-[100px]"
-                  />
-                </div>
               </CardContent>
             </Card>
           </div>
@@ -457,14 +496,11 @@ export default function BookingForm() {
               disabled={
                 isLoading ||
                 !date ||
-                // !timeSlot ||
                 !time ||
                 !service ||
                 !firstName ||
                 !lastName ||
                 !email
-                // !phone ||
-                // !isNewPatient
               }
             >
               {isLoading ? "Booking Appointment..." : "Book Appointment"}

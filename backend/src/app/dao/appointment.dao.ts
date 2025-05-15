@@ -18,6 +18,16 @@ const findById = async (id: string) => {
   return Appointment.findOne({ where: { id } });
 };
 
+const findByPatientId = async (id: string) => {
+  return Appointment.findAll({ where: { patient_id: id } });
+};
+const findByDoctorId = async (id: string) => {
+  return Appointment.findAll({ where: { doctor_id: id } });
+};
+const findByTime = async (date: string) => {
+  return Appointment.findAll({ where: { date } });
+};
+
 const findByEmail = async (email: string) => {
   return Appointment.findOne({ where: { email } });
 };
@@ -51,6 +61,9 @@ const updateWhere = async (appointmentBody: IAppointment, id: string) => {
 export default {
   create,
   findById,
+  findByDoctorId,
+  findByPatientId,
+  findByTime,
   findByEmail,
   isEmailExists,
   findAll,

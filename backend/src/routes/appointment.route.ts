@@ -4,6 +4,9 @@ const router = express.Router();
 
 router.get("/", appointmentController.getAll);
 router.get("/:id", appointmentController.getById);
+router.get("/doctor/:id", appointmentController.getByDoctorId);
+router.get("/patient/:id", appointmentController.getByPatientId);
+router.get("/time/:time", appointmentController.getByTime);
 router.post("/book", appointmentController.create);
 router.put("/update", appointmentController.update);
 
