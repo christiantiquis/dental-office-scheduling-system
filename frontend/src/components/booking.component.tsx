@@ -45,6 +45,8 @@ import type { IDoctor } from "@/interfaces/doctor.interface";
 import { DentalServices } from "@/constants/services.constants";
 import type { IAppointment } from "@/interfaces/appointment.interface";
 import { useNavigate } from "react-router-dom";
+import { useAppDispatch } from "@/store/hooks";
+import { clearAppointment } from "@/store/slices/appointment.slice";
 
 const FormSchema = z.object({
   datetime: z.date({
@@ -87,8 +89,9 @@ export default function BookingForm() {
   });
   const [bookedDoctors, setBookedDoctors] = useState<string[]>([]);
   const navigate = useNavigate();
-
+  const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.UserReducer);
+  const editAppointment = useAppSelector((state) => state.AppointmentReducer);
 
   const createAppointment = async (appointmentBody: Partial<IAppointment>) => {
     const modAppointmentBody = {
@@ -99,6 +102,26 @@ export default function BookingForm() {
       `${import.meta.env.VITE_API_URL}/api/appointment/book`,
       {
         method: "post",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(modAppointmentBody),
+      }
+    );
+
+    const data = await response.json();
+    setDoctors(data.data);
+    // dispatch(setUser(data.data));
+  };
+
+  const updateAppointment = async (appointmentBody: Partial<IAppointment>) => {
+    const modAppointmentBody = {
+      ...appointmentBody,
+      date: appointmentBody.date?.toISOString(),
+      id: editAppointment.id,
+    };
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/api/appointment/update`,
+      {
+        method: "put",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(modAppointmentBody),
       }
@@ -137,7 +160,6 @@ export default function BookingForm() {
       (n: IAppointment) => n.doctor_id
     );
     setBookedDoctors(bookDoctors);
-    // dispatch(setUser(data.data));
   }, [date]);
 
   useEffect(() => {
@@ -149,7 +171,16 @@ export default function BookingForm() {
     setLastName(user.last_name);
     setEmail(user.email);
     getDoctors();
-  }, [user, getDoctors]);
+
+    const temp = { ...editAppointment };
+    if (editAppointment.id) {
+      setNotes(temp.notes ?? "");
+      setDate(temp.date ? new Date(temp.date) : undefined);
+      setTime(temp.time ?? "");
+      setDoctor(temp.doctor_id ?? "");
+      setService(temp.service ?? "");
+    }
+  }, [user, getDoctors, editAppointment]);
 
   // Available services
 
@@ -159,17 +190,6 @@ export default function BookingForm() {
 
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    // In a real app, you would handle booking here
-    console.log({
-      date,
-      service,
-      firstName,
-      lastName,
-      email,
-      notes,
-      time,
-    });
 
     const appointmentDetails: Partial<IAppointment> = {
       date: date ? new Date(date) : new Date(),
@@ -181,7 +201,12 @@ export default function BookingForm() {
       status: "confirmed",
     };
 
-    createAppointment(appointmentDetails);
+    if (editAppointment.id) {
+      updateAppointment(appointmentDetails);
+      dispatch(clearAppointment());
+    } else {
+      createAppointment(appointmentDetails);
+    }
 
     setIsLoading(false);
     setIsSuccess(true);
@@ -225,10 +250,12 @@ export default function BookingForm() {
               asChild
               className="w-full bg-sky-600 hover:bg-sky-700 cursor-pointer"
             >
-              <div onClick={() => navigate("/")}>Return to Home</div>
+              <div onClick={() => navigate("/", { replace: true })}>
+                Return to Home
+              </div>
             </Button>
             <Button variant="outline" asChild className="w-full cursor-pointer">
-              <div onClick={() => navigate("/appointment")}>
+              <div onClick={() => navigate("/appointment", { replace: true })}>
                 View My Appointments
               </div>
             </Button>
@@ -341,6 +368,8 @@ export default function BookingForm() {
                                     } ${
                                       time ? convertTo12HourFormat(time) : ""
                                     }`
+                                  ) : date ? (
+                                    format(date, "PP")
                                   ) : (
                                     <span>Pick a date</span>
                                   )}
@@ -355,19 +384,8 @@ export default function BookingForm() {
                               <Calendar
                                 mode="single"
                                 captionLayout="dropdown"
-                                selected={date || field.value}
+                                selected={date ?? field.value}
                                 onSelect={(selectedDate) => {
-                                  // let selectedTime = time;
-                                  // if (!selectedTime) {
-                                  //   selectedTime = "09:00";
-                                  //   setTime(selectedTime);
-                                  // }
-                                  // const [hours, minutes] =
-                                  //   selectedTime.split(":");
-                                  // selectedDate?.setHours(
-                                  //   parseInt(hours),
-                                  //   parseInt(minutes)
-                                  // );
                                   setDate(selectedDate!);
                                   field.onChange(selectedDate);
                                 }}
@@ -400,12 +418,15 @@ export default function BookingForm() {
                           <FormControl>
                             <Select
                               defaultValue={time!}
+                              value={time!}
                               onValueChange={(e) => {
-                                console.log("e", e);
                                 setTime(e);
                                 if (date) {
-                                  const [hours, minutes] = e.split(":");
-                                  const newDate = new Date(date.getTime());
+                                  const tempDate = new Date(date);
+                                  const [hours, minutes] = e
+                                    ? e.split(":")
+                                    : time.split(":");
+                                  const newDate = new Date(tempDate.getTime());
                                   newDate.setHours(
                                     parseInt(hours),
                                     parseInt(minutes)
@@ -503,7 +524,9 @@ export default function BookingForm() {
                 !email
               }
             >
-              {isLoading ? "Booking Appointment..." : "Book Appointment"}
+              {isLoading
+                ? "Booking Appointment..."
+                : `${editAppointment.id ? "Reschedule" : "Book"} Appointment`}
             </Button>
           </div>
         </form>

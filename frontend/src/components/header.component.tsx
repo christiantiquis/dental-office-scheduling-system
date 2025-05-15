@@ -84,13 +84,13 @@ export default function Header() {
           )}
           <div
             className="text-sm font-medium hover:text-sky-600 transition-colors cursor-pointer"
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/", { replace: true })}
           >
             Home
           </div>
           <div
             className="text-sm font-medium hover:text-sky-600 transition-colors cursor-pointer"
-            onClick={() => navigate("/appointment")}
+            onClick={() => navigate("/appointment", { replace: true })}
           >
             Appointment
           </div>
@@ -129,13 +129,19 @@ export default function Header() {
             <div className="container py-4 space-y-4 text-center">
               <div
                 className="block text-sm font-medium hover:text-sky-600 transition-colors cursor-pointer"
-                onClick={() => setIsMenuOpen(false)}
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  navigate("/", { replace: true });
+                }}
               >
                 Home
               </div>
               <div
                 className="block text-sm font-medium hover:text-sky-600 transition-colors cursor-pointer"
-                onClick={() => setIsMenuOpen(false)}
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  navigate("/appointment", { replace: true });
+                }}
               >
                 Appointment
               </div>

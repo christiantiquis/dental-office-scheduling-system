@@ -2,14 +2,15 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
 export default function Home() {
-  const nagivate = useNavigate();
+  const navigate = useNavigate();
 
   const handleClickBook = () => {
     const token = localStorage.getItem("token");
-    if (token) {
-      nagivate("/appointment/booking");
+    const username = localStorage.getItem("username");
+    if (token && username) {
+      navigate("/appointment/booking", { replace: true });
     } else {
-      nagivate("/signup");
+      navigate("/signup", { replace: true });
     }
   };
 

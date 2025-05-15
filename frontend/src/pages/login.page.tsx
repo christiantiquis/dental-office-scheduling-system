@@ -45,7 +45,6 @@ export default function LoginPage() {
         localStorage.setItem("token", data.token);
         localStorage.setItem("username", data.data.first_name);
         localStorage.setItem("userId", data.data.id);
-        // alert("Login successful!");
         navigate("/", { replace: true });
       } else {
         console.log(data.message || "Login failed");

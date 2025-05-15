@@ -7,7 +7,9 @@ import {
   Calendar,
   Clock,
   FileText,
+  HeartPulse,
   MoreHorizontal,
+  Stethoscope,
   Trash2,
 } from "lucide-react";
 import { format } from "date-fns";
@@ -31,7 +33,8 @@ import type { IAppointment } from "@/interfaces/appointment.interface";
 import type { IDoctor } from "@/interfaces/doctor.interface";
 import { DentalServices } from "@/constants/services.constants";
 import { useNavigate } from "react-router-dom";
-import { useAppSelector } from "@/store/hooks";
+import { useAppSelector, useAppDispatch } from "@/store/hooks";
+import { setAppointment } from "@/store/slices/appointment.slice";
 
 // Mock data for appointments
 // const upcomingAppointments = [
@@ -96,7 +99,7 @@ export default function Appointments() {
 
   const patientId = useAppSelector((state) => state.UserReducer.id);
   const navigate = useNavigate();
-
+  const dispatch = useAppDispatch();
   const getDoctors = useCallback(async () => {
     const response = await fetch(`${import.meta.env.VITE_API_URL}/api/doctor`, {
       method: "GET",
@@ -141,43 +144,52 @@ export default function Appointments() {
     );
 
     setAppointments(filteredAppointments);
-  }, []);
+  }, [patientId]);
 
-  useEffect(() => {
-    getAppointment();
-    getDoctors();
-  }, [getDoctors, getAppointment]);
+  const confirmCancelAppointment = useCallback(async () => {
+    // if (appointmentToCancel) {
+    //   // Move the appointment from upcoming to past with cancelled status
+    //   const appointmentToMove = appointments.upcoming.find(
+    //     (app) => app.id === appointmentToCancel
+    //   );
+
+    //   if (appointmentToMove) {
+    //     const updatedUpcoming = appointments.upcoming.filter(
+    //       (app) => app.id !== appointmentToCancel
+    //     );
+    //     const updatedPast = [
+    //       ...appointments.past,
+    //       { ...appointmentToMove, status: "cancelled" },
+    //     ];
+
+    //     setAppointments({
+    //       upcoming: updatedUpcoming,
+    //       past: updatedPast,
+    //     });
+    //   }
+    // }
+    console.log("TEST");
+    console.log(appointmentToCancel);
+
+    const response = await fetch(
+      `${
+        import.meta.env.VITE_API_URL
+      }/api/appointment/cancel/${appointmentToCancel}`,
+      {
+        method: "put",
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+
+    console.log(response);
+
+    setCancelDialogOpen(false);
+    setAppointmentToCancel(null);
+  }, [appointmentToCancel]);
 
   const handleCancelAppointment = (id: string) => {
     setAppointmentToCancel(id);
     setCancelDialogOpen(true);
-  };
-
-  const confirmCancelAppointment = () => {
-    if (appointmentToCancel) {
-      // Move the appointment from upcoming to past with cancelled status
-      const appointmentToMove = appointments.upcoming.find(
-        (app) => app.id === appointmentToCancel
-      );
-
-      if (appointmentToMove) {
-        const updatedUpcoming = appointments.upcoming.filter(
-          (app) => app.id !== appointmentToCancel
-        );
-        const updatedPast = [
-          ...appointments.past,
-          { ...appointmentToMove, status: "cancelled" },
-        ];
-
-        setAppointments({
-          upcoming: updatedUpcoming,
-          past: updatedPast,
-        });
-      }
-    }
-
-    setCancelDialogOpen(false);
-    setAppointmentToCancel(null);
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -186,14 +198,20 @@ export default function Appointments() {
     setDetailsDialogOpen(true);
   };
 
+  const handelReschedule = (appointment: IAppointment) => {
+    dispatch(setAppointment(appointment));
+    console.log(appointment);
+    navigate("/appointment/booking", { replace: true });
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "confirmed":
-        return <Badge className="bg-green-500 h-[36px]">Confirmed</Badge>;
+        return <Badge className="bg-green-500 h-[36px] w-20">Confirmed</Badge>;
       case "completed":
-        return <Badge className="bg-blue-500 h-[36px]">Completed</Badge>;
+        return <Badge className="bg-blue-500 h-[36px] w-20">Completed</Badge>;
       case "cancelled":
-        return <Badge className="bg-red-500 h-[36px]">Cancelled</Badge>;
+        return <Badge className="bg-red-500 h-[36px] w-20">Cancelled</Badge>;
       default:
         return <Badge>Unknown</Badge>;
     }
@@ -212,8 +230,21 @@ export default function Appointments() {
   };
 
   const handleNewBooking = () => {
-    navigate("/appointment/booking");
+    navigate("/appointment/booking", { replace: true });
   };
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const username = localStorage.getItem("username");
+    if (!(token && username)) {
+      navigate("/signup", { replace: true });
+    }
+  }, [navigate]);
+
+  useEffect(() => {
+    getAppointment();
+    getDoctors();
+  }, [getDoctors, getAppointment, confirmCancelAppointment]);
 
   return (
     <div className="container py-12 m-auto">
@@ -260,22 +291,30 @@ export default function Appointments() {
                   <Card key={appointment.id}>
                     <CardContent className="p-6">
                       <div className="flex flex-col md:flex-row justify-between">
-                        <div className="flex flex-col space-y-2">
-                          <div className="flex items-center space-x-2">
-                            <Calendar className="h-5 w-5 text-sky-600" />
-                            <span className="font-medium">
-                              {format(appointment.date, "PPPP")}
-                            </span>
+                        <div className="flex flex-row space-y-2-between">
+                          <div className="flex flex-col align-middle w-[300px] m-0">
+                            <div className="flex items-center space-x-2">
+                              <Calendar className="h-5 w-5 text-sky-600" />
+                              <span className="font-medium">
+                                {format(appointment.date, "PPPP")}
+                              </span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Clock className="h-5 w-5 text-sky-600" />
+                              <span>{format(appointment.date, "h:mm a")}</span>
+                            </div>
                           </div>
-                          <div className="flex items-center space-x-2">
-                            <Clock className="h-5 w-5 text-sky-600" />
-                            <span>{appointment.time}</span>
-                          </div>
-                          <div className="font-medium">
-                            {getServiceName(appointment.service)}
-                          </div>
-                          <div className="text-muted-foreground">
-                            {getDoctorName(appointment.doctor_id)}
+                          <div>
+                            <div className="flex items-center space-x-2">
+                              <HeartPulse className="h-5 w-5 text-sky-600" />
+                              <span>{getServiceName(appointment.service)}</span>
+                            </div>
+                            <div className="flex items-center space-x-2 text-muted-foreground">
+                              <Stethoscope className="h-5 w-5 text-sky-600" />
+                              <span>
+                                {getDoctorName(appointment.doctor_id)}
+                              </span>
+                            </div>
                           </div>
                         </div>
                         <div className="flex items-start mt-4 md:mt-0 space-x-2">
@@ -297,12 +336,12 @@ export default function Appointments() {
                                 View Details
                               </DropdownMenuItem>
                               <DropdownMenuItem asChild>
-                                <a
-                                  href={`/booking?reschedule=${appointment.id}`}
+                                <div
+                                  onClick={() => handelReschedule(appointment)}
                                 >
                                   <Calendar className="mr-2 h-4 w-4" />
                                   Reschedule
-                                </a>
+                                </div>
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 className="text-red-600"
@@ -338,22 +377,30 @@ export default function Appointments() {
                   <Card key={appointment.id}>
                     <CardContent className="p-6">
                       <div className="flex flex-col md:flex-row justify-between">
-                        <div className="flex flex-col space-y-2">
-                          <div className="flex items-center space-x-2">
-                            <Calendar className="h-5 w-5 text-sky-600" />
-                            <span className="font-medium">
-                              {format(appointment.date, "PPPP")}
-                            </span>
+                        <div className="flex flex-row space-y-2-between">
+                          <div className="flex flex-col align-middle w-[300px] m-0">
+                            <div className="flex items-center space-x-2">
+                              <Calendar className="h-5 w-5 text-sky-600" />
+                              <span className="font-medium">
+                                {format(appointment.date, "PPPP")}
+                              </span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Clock className="h-5 w-5 text-sky-600" />
+                              <span>{format(appointment.date, "h:mm a")}</span>
+                            </div>
                           </div>
-                          <div className="flex items-center space-x-2">
-                            <Clock className="h-5 w-5 text-sky-600" />
-                            <span>{format(appointment.date, "h:mm a")}</span>
-                          </div>
-                          <div className="font-medium">
-                            {getServiceName(appointment.service)}
-                          </div>
-                          <div className="text-muted-foreground">
-                            {getDoctorName(appointment.doctor_id)}
+                          <div>
+                            <div className="flex items-center space-x-2">
+                              <HeartPulse className="h-5 w-5 text-sky-600" />
+                              <span>{getServiceName(appointment.service)}</span>
+                            </div>
+                            <div className="flex items-center space-x-2 text-muted-foreground">
+                              <Stethoscope className="h-5 w-5 text-sky-600" />
+                              <span>
+                                {getDoctorName(appointment.doctor_id)}
+                              </span>
+                            </div>
                           </div>
                         </div>
                         <div className="flex items-start mt-4 md:mt-0">

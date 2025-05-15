@@ -70,7 +70,8 @@ export default function SignupPage() {
       if (response.ok) {
         // Handle successful signup (e.g., save token to localStorage)
         localStorage.setItem("token", data.token);
-        // alert("Login successful!");
+        localStorage.setItem("username", data.data.first_name);
+        localStorage.setItem("userId", data.data.id);
       } else {
         console.log(data.message || "Login failed");
       }
