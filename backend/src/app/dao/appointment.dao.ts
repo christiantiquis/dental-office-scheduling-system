@@ -57,6 +57,15 @@ const updateWhere = async (appointmentBody: IAppointment, id: string) => {
     throw e;
   }
 };
+const cancel = async (appointmentBody: IAppointment, id: string) => {
+  try {
+    const result = Appointment.update(appointmentBody, { where: { id } });
+    return result;
+  } catch (e) {
+    console.log(e);
+    throw e;
+  }
+};
 
 export default {
   create,
@@ -68,4 +77,5 @@ export default {
   isEmailExists,
   findAll,
   updateWhere,
+  cancel,
 };

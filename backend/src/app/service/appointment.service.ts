@@ -34,6 +34,7 @@ const create = async (appointmentBody: IAppointment) => {
 
 const update = async (appointmentBody: IAppointment) => {
   try {
+    console.log("TEST", appointmentBody);
     const appointmentData = await appointmentDao.findById(appointmentBody.id);
     const updatedFields: Partial<IAppointment> = {};
     if (appointmentData == null) {
@@ -169,6 +170,26 @@ const getById = async (id: string) => {
   }
 };
 
+const cancel = async (id: string) => {
+  try {
+    const appointmentToCancel = await appointmentDao.findById(id);
+    const updatedAppointment = { ...appointmentToCancel, status: "cancelled" };
+    const appointmentData = await appointmentDao.cancel(updatedAppointment, id);
+
+    return resHandler.returnSuccess(
+      httpStatus.OK,
+      "Login Successful",
+      appointmentData
+    );
+  } catch (e) {
+    console.log(e);
+    return resHandler.returnError(
+      httpStatus.BAD_REQUEST,
+      "Something went wrong!"
+    );
+  }
+};
+
 export default {
   create,
   getAll,
@@ -177,4 +198,5 @@ export default {
   getByTime,
   getById,
   update,
+  cancel,
 };

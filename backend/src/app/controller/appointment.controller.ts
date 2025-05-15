@@ -84,6 +84,18 @@ const update = async (req: Request, res: Response): Promise<void> => {
     res.status(httpStatus.BAD_GATEWAY).send(e);
   }
 };
+const cancel = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    console.log("CANCEL CONTROLLER ID: ", id);
+    const appointment = await appointmentService.cancel(id);
+
+    res.status(appointment.response.code).send(appointment.response);
+  } catch (e) {
+    console.log("CONTRO", e);
+    res.status(httpStatus.BAD_GATEWAY).send(e);
+  }
+};
 
 export default {
   getAll,
@@ -93,4 +105,5 @@ export default {
   getByTime,
   create,
   update,
+  cancel,
 };
