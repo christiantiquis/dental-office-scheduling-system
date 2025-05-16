@@ -7,9 +7,9 @@ import model from "./app/models";
 import rateLimit from "express-rate-limit";
 
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: "Too many request from this IP, please try again after 15 minutes.",
+  windowMs: 3 * 60 * 1000,
+  max: 1000,
+  message: "Too many request from this IP, please try again after 3 minutes.",
 });
 
 const PORT = process.env.PORT;
