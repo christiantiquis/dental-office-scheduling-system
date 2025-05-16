@@ -125,9 +125,9 @@ export default function BookingForm() {
     const time = date?.toISOString();
     const data = await getAppointmentsByTime(time);
     const bookApptData: IAppointment[] = data;
-    const bookDoctors = bookApptData.map(
-      (appt: IAppointment) => appt.doctor_id
-    );
+    const bookDoctors = bookApptData
+      .filter((appt: IAppointment) => appt.status === "confirmed")
+      .map((appt: IAppointment) => appt.doctor_id as string);
     setBookedDoctors(bookDoctors);
   }, [date]);
 
@@ -446,7 +446,10 @@ export default function BookingForm() {
                         <SelectItem
                           key={doctor.id}
                           value={doctor.id}
-                          disabled={bookedDoctors.includes(doctor.id)}
+                          disabled={
+                            bookedDoctors.includes(doctor.id) &&
+                            !(doctor.id === editAppointment.doctor_id)
+                          }
                         >
                           {"Dr. "} {doctor.first_name} {doctor.last_name}
                         </SelectItem>
