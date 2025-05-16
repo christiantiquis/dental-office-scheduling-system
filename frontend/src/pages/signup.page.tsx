@@ -9,9 +9,11 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/ui/card";
-import { Label } from "@radix-ui/react-label";
-import { Input } from "../components/ui/input";
-import { Button } from "../components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { userSignup } from "@/api/user.api";
+import { toast } from "sonner";
 
 export default function SignupPage() {
   const [firstName, setFirstName] = useState("");
@@ -39,46 +41,31 @@ export default function SignupPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setPasswordError("");
-
-    if (!validatePasswords()) {
-      return;
-    }
-
+    if (!validatePasswords()) return;
     setIsLoading(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
     // In a real app, you would handle registration here
-    console.log({ firstName, lastName, email, password });
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/user/signup`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            first_name: firstName,
-            last_name: lastName,
-            email,
-            password,
-          }),
-        }
+      const { user, token } = await userSignup(
+        firstName,
+        lastName,
+        email,
+        password
       );
-
-      const data = await response.json();
-      if (response.ok) {
+      if (user) {
         // Handle successful signup (e.g., save token to localStorage)
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("username", data.data.first_name);
-        localStorage.setItem("userId", data.data.id);
+        localStorage.setItem("token", token ?? "");
+        localStorage.setItem("username", user.first_name ?? "");
+        localStorage.setItem("userId", user.id ?? "");
       } else {
-        console.log(data.message || "Login failed");
+        toast.error("Registration Failed: Unexpected Error Occurred!");
+        throw new Error("Registration Failed");
       }
       navigate("/", { replace: true });
-    } catch (err) {
-      console.log(err);
-      console.log("An error occurred. Please try again.");
+      toast.success("User successfully created an account.");
+    } catch (e) {
+      toast.error("Registration Failed: Email already exists. Please login!");
+      console.log(e);
     }
 
     setIsLoading(false);
@@ -91,6 +78,7 @@ export default function SignupPage() {
           <img
             className="h-120 w-100 object-cover align-middle"
             src="/logo_big.png"
+            onClick={() => navigate("/", { replace: true })}
           />
         </div>
         <div className="">
@@ -166,14 +154,17 @@ export default function SignupPage() {
             <CardFooter className="flex flex-col">
               <Button
                 type="submit"
-                className="w-full bg-sky-600 hover:bg-sky-700"
+                className="w-full bg-sky-600 hover:bg-sky-700 cursor-pointer"
                 disabled={isLoading}
               >
                 {isLoading ? "Creating account..." : "Create account"}
               </Button>
               <p className="mt-4 text-center text-sm text-muted-foreground">
                 Already have an account?{" "}
-                <a href="/login" className="text-sky-600 hover:text-sky-700">
+                <a
+                  onClick={() => navigate("/login", { replace: true })}
+                  className="text-sky-600 hover:text-sky-700 cursor-pointer"
+                >
                   Sign in
                 </a>
               </p>

@@ -47,6 +47,13 @@ import type { IAppointment } from "@/interfaces/appointment.interface";
 import { useNavigate } from "react-router-dom";
 import { useAppDispatch } from "@/store/hooks";
 import { clearAppointment } from "@/store/slices/appointment.slice";
+import { toast } from "sonner";
+import {
+  createAppointment,
+  getAppointmentsByTime,
+  updateAppointment,
+} from "@/api/appointment.api";
+import { getDoctors } from "@/api/doctor.api";
 
 const FormSchema = z.object({
   datetime: z.date({
@@ -93,103 +100,40 @@ export default function BookingForm() {
   const user = useAppSelector((state) => state.UserReducer);
   const editAppointment = useAppSelector((state) => state.AppointmentReducer);
 
-  const createAppointment = async (appointmentBody: Partial<IAppointment>) => {
-    const modAppointmentBody = {
-      ...appointmentBody,
-      date: appointmentBody.date?.toISOString(),
-    };
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/api/appointment/book`,
-      {
-        method: "post",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(modAppointmentBody),
-      }
-    );
-
-    const data = await response.json();
-    setDoctors(data.data);
-    // dispatch(setUser(data.data));
+  const postAppointment = async (appointmentBody: Partial<IAppointment>) => {
+    const data = await createAppointment(appointmentBody);
+    setDoctors(data);
+    toast.success("Appointment successfully booked!");
   };
 
-  const updateAppointment = async (appointmentBody: Partial<IAppointment>) => {
-    const modAppointmentBody = {
-      ...appointmentBody,
-      date: appointmentBody.date?.toISOString(),
-      id: editAppointment.id,
-    };
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/api/appointment/update`,
-      {
-        method: "put",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(modAppointmentBody),
-      }
+  const putAppointment = async (appointmentBody: Partial<IAppointment>) => {
+    const data = await updateAppointment(
+      appointmentBody,
+      editAppointment.id ?? ""
     );
-
-    const data = await response.json();
-    setDoctors(data.data);
-    // dispatch(setUser(data.data));
+    setDoctors(data);
+    toast.success("Appointment successfully updated!");
   };
 
-  const getDoctors = useCallback(async () => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/doctor`, {
-      method: "GET",
-      headers: { "Content-Type": "application/json" },
-    });
-
-    const data = await response.json();
-    setDoctors(data.data);
-    // dispatch(setUser(data.data));
+  const fetchDoctors = useCallback(async () => {
+    const data = await getDoctors();
+    setDoctors(data);
   }, []);
 
-  const getAppointmentsByTime = useCallback(async () => {
+  const fetchAppointmentsByTime = useCallback(async () => {
     if (!date) return;
     const time = date?.toISOString();
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/api/appointment/time/${time}`,
-      {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      }
-    );
-
-    const data = await response.json();
-    const bookedAppointmentsData: IAppointment[] = data.data;
-    const bookDoctors = bookedAppointmentsData.map(
-      (n: IAppointment) => n.doctor_id
+    const data = await getAppointmentsByTime(time);
+    const bookApptData: IAppointment[] = data;
+    const bookDoctors = bookApptData.map(
+      (appt: IAppointment) => appt.doctor_id
     );
     setBookedDoctors(bookDoctors);
   }, [date]);
 
-  useEffect(() => {
-    getAppointmentsByTime();
-  }, [getAppointmentsByTime]);
-
-  useEffect(() => {
-    setFirstName(user.first_name);
-    setLastName(user.last_name);
-    setEmail(user.email);
-    getDoctors();
-
-    const temp = { ...editAppointment };
-    if (editAppointment.id) {
-      setNotes(temp.notes ?? "");
-      setDate(temp.date ? new Date(temp.date) : undefined);
-      setTime(temp.time ?? "");
-      setDoctor(temp.doctor_id ?? "");
-      setService(temp.service ?? "");
-    }
-  }, [user, getDoctors, editAppointment]);
-
-  // Available services
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
 
     const appointmentDetails: Partial<IAppointment> = {
       date: date ? new Date(date) : new Date(),
@@ -202,15 +146,35 @@ export default function BookingForm() {
     };
 
     if (editAppointment.id) {
-      updateAppointment(appointmentDetails);
+      putAppointment(appointmentDetails);
       dispatch(clearAppointment());
     } else {
-      createAppointment(appointmentDetails);
+      postAppointment(appointmentDetails);
     }
 
     setIsLoading(false);
     setIsSuccess(true);
   };
+
+  useEffect(() => {
+    fetchAppointmentsByTime();
+  }, [fetchAppointmentsByTime]);
+
+  useEffect(() => {
+    setFirstName(user.first_name);
+    setLastName(user.last_name);
+    setEmail(user.email);
+    fetchDoctors();
+
+    const temp = { ...editAppointment };
+    if (editAppointment.id) {
+      setNotes(temp.notes ?? "");
+      setDate(temp.date ? new Date(temp.date) : undefined);
+      setTime(temp.time ?? "");
+      setDoctor(temp.doctor_id ?? "");
+      setService(temp.service ?? "");
+    }
+  }, [user, fetchDoctors, editAppointment]);
 
   if (isSuccess) {
     return (

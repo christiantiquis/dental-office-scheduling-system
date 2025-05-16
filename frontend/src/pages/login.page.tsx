@@ -1,5 +1,3 @@
-"use client";
-
 import type React from "react";
 import { useState } from "react";
 import {
@@ -10,10 +8,11 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/ui/card";
-import { Label } from "../components/ui/label";
-import { Input } from "../components/ui/input";
-import { Button } from "../components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -29,7 +28,6 @@ export default function LoginPage() {
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
     // In a real app, you would handle authentication here
-    console.log({ email, password });
     try {
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/api/auth/login`,
@@ -46,12 +44,14 @@ export default function LoginPage() {
         localStorage.setItem("username", data.data.first_name);
         localStorage.setItem("userId", data.data.id);
         navigate("/", { replace: true });
+        toast.success("Login successful!");
       } else {
         console.log(data.message || "Login failed");
+        toast.error("Login Failed. Invalid credentials!");
       }
-    } catch (err) {
-      console.log(err);
-      console.log("An error occurred. Please try again.");
+    } catch (e) {
+      console.log(e);
+      toast.error("Login Failed. Invalid credentials!");
     }
 
     setIsLoading(false);
@@ -60,7 +60,11 @@ export default function LoginPage() {
   return (
     <div className="container flex items-center justify-center min-h-[calc(100vh-8rem)] py-12 m-auto h-screen">
       <Card className="mx-auto max-w-md w-full">
-        <img className="h-80 w-full object-cover" src="/logo_big.png" />
+        <img
+          className="h-80 w-full object-cover"
+          src="/logo_big.png"
+          onClick={() => navigate("/", { replace: true })}
+        />
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
           <CardDescription>
@@ -97,14 +101,17 @@ export default function LoginPage() {
           <CardFooter className="flex flex-col">
             <Button
               type="submit"
-              className="w-full bg-sky-600 hover:bg-sky-700"
+              className="w-full bg-sky-600 hover:bg-sky-700 cursor-pointer"
               disabled={isLoading}
             >
               {isLoading ? "Signing in..." : "Sign in"}
             </Button>
             <p className="mt-4 text-center text-sm text-muted-foreground">
               Don't have an account?{" "}
-              <a href="/signup" className="text-sky-600 hover:text-sky-700">
+              <a
+                onClick={() => navigate("/signup", { replace: true })}
+                className="text-sky-600 hover:text-sky-700 cursor-pointer"
+              >
                 Sign up
               </a>
             </p>

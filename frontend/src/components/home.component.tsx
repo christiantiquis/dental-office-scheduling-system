@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -11,6 +12,7 @@ export default function Home() {
       navigate("/appointment/booking", { replace: true });
     } else {
       navigate("/signup", { replace: true });
+      toast.info("Please sign up or log in to book an appointment.");
     }
   };
 
@@ -54,7 +56,7 @@ export default function Home() {
                 <Button
                   asChild
                   size="lg"
-                  className="bg-sky-600 hover:bg-sky-700"
+                  className="bg-sky-600 hover:bg-sky-700 cursor-pointer"
                   onClick={handleClickBook}
                 >
                   <div>Book Appointment</div>

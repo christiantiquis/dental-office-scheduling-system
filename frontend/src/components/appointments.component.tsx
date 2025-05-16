@@ -35,48 +35,27 @@ import { DentalServices } from "@/constants/services.constants";
 import { useNavigate } from "react-router-dom";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { setAppointment } from "@/store/slices/appointment.slice";
+import { getDoctors } from "@/api/doctor.api";
+import { cancelAppointment, getAppointments } from "@/api/appointment.api";
+import { toast } from "sonner";
 
-// Mock data for appointments
-// const upcomingAppointments = [
-//   {
-//     id: "1",
-//     date: new Date("2025-05-20T10:00:00"),
-//     service: "Regular Check-up",
-//     dentist: "Dr. Sarah Johnson",
-//     status: "confirmed",
-//   },
-//   {
-//     id: "2",
-//     date: new Date("2025-06-05T14:30:00"),
-//     service: "Teeth Cleaning",
-//     dentist: "Dr. Michael Chen",
-//     status: "confirmed",
-//   },
-// ];
+const getServiceName = (name: string) => {
+  const service = DentalServices.find((svc) => svc.name === name);
+  return service ? service.text : "Unknown Service";
+};
 
-// const pastAppointments = [
-//   {
-//     id: "3",
-//     date: new Date("2025-04-10T11:00:00"),
-//     service: "Consultation",
-//     dentist: "Dr. Sarah Johnson",
-//     status: "completed",
-//   },
-//   {
-//     id: "4",
-//     date: new Date("2025-03-15T09:30:00"),
-//     service: "Filling",
-//     dentist: "Dr. Emily Rodriguez",
-//     status: "completed",
-//   },
-//   {
-//     id: "5",
-//     date: new Date("2025-02-22T15:00:00"),
-//     service: "Teeth Whitening",
-//     dentist: "Dr. Michael Chen",
-//     status: "cancelled",
-//   },
-// ];
+const getStatusBadge = (status: string) => {
+  switch (status) {
+    case "confirmed":
+      return <Badge className="bg-green-500 h-[36px] w-20">Confirmed</Badge>;
+    case "completed":
+      return <Badge className="bg-blue-500 h-[36px] w-20">Completed</Badge>;
+    case "cancelled":
+      return <Badge className="bg-red-500 h-[36px] w-20">Cancelled</Badge>;
+    default:
+      return <Badge>Unknown</Badge>;
+  }
+};
 
 export default function Appointments() {
   const [appointments, setAppointments] = useState<{
@@ -91,41 +70,28 @@ export default function Appointments() {
     null
   );
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [selectedAppointment, setSelectedAppointment] = useState<any | null>(
-    null
-  );
+  const [selectedAppointment, setSelectedAppointment] =
+    useState<IAppointment | null>(null);
   const [doctors, setDoctors] = useState<IDoctor[]>([]);
 
   const patientId = useAppSelector((state) => state.UserReducer.id);
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const getDoctors = useCallback(async () => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/doctor`, {
-      method: "GET",
-      headers: { "Content-Type": "application/json" },
-    });
 
-    const data = await response.json();
-    setDoctors(data.data);
+  const fetchDoctors = useCallback(async () => {
+    try {
+      const result = await getDoctors();
+      setDoctors(result);
+    } catch (error) {
+      console.error("Error loading doctors:", error);
+    }
   }, []);
 
-  const getAppointment = useCallback(async () => {
-    const localPatientId = patientId
-      ? patientId
-      : localStorage.getItem("userId");
-    if (!localPatientId) return;
-    const response = await fetch(
-      `${
-        import.meta.env.VITE_API_URL
-      }/api/appointment/patient/${localPatientId}`,
-      {
-        method: "get",
-        headers: { "Content-Type": "application/json" },
-      }
-    );
-    const data = await response.json();
-    const filteredAppointments = data.data.reduce(
+  const fetchAppointment = useCallback(async () => {
+    const userId = patientId ? patientId : localStorage.getItem("userId");
+    if (!userId) return;
+    const resAppointments = await getAppointments(userId);
+    const filteredAppointments = resAppointments.reduce(
       (
         acc: { upcoming: IAppointment[]; past: IAppointment[] },
         appointment: IAppointment
@@ -147,74 +113,27 @@ export default function Appointments() {
   }, [patientId]);
 
   const confirmCancelAppointment = useCallback(async () => {
-    // if (appointmentToCancel) {
-    //   // Move the appointment from upcoming to past with cancelled status
-    //   const appointmentToMove = appointments.upcoming.find(
-    //     (app) => app.id === appointmentToCancel
-    //   );
-
-    //   if (appointmentToMove) {
-    //     const updatedUpcoming = appointments.upcoming.filter(
-    //       (app) => app.id !== appointmentToCancel
-    //     );
-    //     const updatedPast = [
-    //       ...appointments.past,
-    //       { ...appointmentToMove, status: "cancelled" },
-    //     ];
-
-    //     setAppointments({
-    //       upcoming: updatedUpcoming,
-    //       past: updatedPast,
-    //     });
-    //   }
-    // }
-    console.log("TEST");
-    console.log(appointmentToCancel);
-
-    const response = await fetch(
-      `${
-        import.meta.env.VITE_API_URL
-      }/api/appointment/cancel/${appointmentToCancel}`,
-      {
-        method: "put",
-        headers: { "Content-Type": "application/json" },
-      }
-    );
-
-    console.log(response);
+    await cancelAppointment(appointmentToCancel ?? "");
+    await fetchAppointment();
 
     setCancelDialogOpen(false);
     setAppointmentToCancel(null);
-  }, [appointmentToCancel]);
+    toast.success("Appointment successfully cancelled.");
+  }, [appointmentToCancel, fetchAppointment]);
 
   const handleCancelAppointment = (id: string) => {
     setAppointmentToCancel(id);
     setCancelDialogOpen(true);
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const viewAppointmentDetails = (appointment: any) => {
+  const viewAppointmentDetails = (appointment: IAppointment) => {
     setSelectedAppointment(appointment);
     setDetailsDialogOpen(true);
   };
 
   const handelReschedule = (appointment: IAppointment) => {
     dispatch(setAppointment(appointment));
-    console.log(appointment);
     navigate("/appointment/booking", { replace: true });
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "confirmed":
-        return <Badge className="bg-green-500 h-[36px] w-20">Confirmed</Badge>;
-      case "completed":
-        return <Badge className="bg-blue-500 h-[36px] w-20">Completed</Badge>;
-      case "cancelled":
-        return <Badge className="bg-red-500 h-[36px] w-20">Cancelled</Badge>;
-      default:
-        return <Badge>Unknown</Badge>;
-    }
   };
 
   const getDoctorName = (id: string) => {
@@ -222,11 +141,6 @@ export default function Appointments() {
     return doctor
       ? `Dr. ${doctor.first_name} ${doctor.last_name}`
       : "Unknown Doctor";
-  };
-
-  const getServiceName = (name: string) => {
-    const service = DentalServices.find((svc) => svc.name === name);
-    return service ? service.text : "Unknown Service";
   };
 
   const handleNewBooking = () => {
@@ -237,14 +151,15 @@ export default function Appointments() {
     const token = localStorage.getItem("token");
     const username = localStorage.getItem("username");
     if (!(token && username)) {
-      navigate("/signup", { replace: true });
+      navigate("/login", { replace: true });
+      toast.info("Please log in or sign up to see appointments.");
     }
   }, [navigate]);
 
   useEffect(() => {
-    getAppointment();
-    getDoctors();
-  }, [getDoctors, getAppointment, confirmCancelAppointment]);
+    fetchAppointment();
+    fetchDoctors();
+  }, [fetchDoctors, fetchAppointment]);
 
   return (
     <div className="container py-12 m-auto">
@@ -403,7 +318,7 @@ export default function Appointments() {
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-start mt-4 md:mt-0">
+                        <div className="flex items-start mt-4 md:mt-0 space-x-2">
                           {getStatusBadge(appointment.status)}
                           <Button
                             variant="ghost"
@@ -492,9 +407,11 @@ export default function Appointments() {
                 {selectedAppointment.status === "confirmed" && (
                   <div className="flex gap-2 pt-2">
                     <Button asChild variant="outline" className="flex-1">
-                      <a href={`/booking?reschedule=${selectedAppointment.id}`}>
+                      <div
+                        onClick={() => handelReschedule(selectedAppointment)}
+                      >
                         Reschedule
-                      </a>
+                      </div>
                     </Button>
                     <Button
                       variant="destructive"

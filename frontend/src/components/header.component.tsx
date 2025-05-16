@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { Button } from "./ui/button";
 import { useNavigate } from "react-router-dom";
 import { useAppDispatch } from "@/store/hooks";
 import { setUser } from "@/store/slices/user.slice";
+import { getUserData } from "@/api/user.api";
+import { toast } from "sonner";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -12,18 +14,13 @@ export default function Header() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
-  const initialFetch = async (id: string) => {
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/api/user/${id}`,
-      {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      }
-    );
-
-    const data = await response.json();
-    dispatch(setUser(data.data));
-  };
+  const fetchUserData = useCallback(
+    async (id: string) => {
+      const user = await getUserData(id);
+      dispatch(setUser(user));
+    },
+    [dispatch]
+  );
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -32,9 +29,9 @@ export default function Header() {
     if (token && name && userId) {
       setIsLoggedIn(true);
       setUsername(name);
-      initialFetch(userId);
+      fetchUserData(userId);
     }
-  }, [dispatch]); // no need to include `initialFetch`
+  }, [dispatch, fetchUserData]);
 
   const handleLogin = () => {
     navigate("/login", { replace: true });
@@ -48,6 +45,7 @@ export default function Header() {
     localStorage.clear();
     setIsLoggedIn(false);
     navigate("/", { replace: true });
+    toast.success("Logout successful!");
   };
 
   return (
