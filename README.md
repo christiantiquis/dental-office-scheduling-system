@@ -87,8 +87,8 @@ Ensure the following are installed on your machine:
 1. **Clone the repository**
 
     ```bash
-    git clone https://github.com/your-username/your-repo.git
-    cd your-repo
+    git clone https://github.com/christiantiquis/dental-office-scheduling-system.git
+    cd dental-office-scheduling-system
     ```
 
 2. **Install frontend dependencies**
